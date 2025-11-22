@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Rainbow
+Comment=...
+Exec=toq-rainbow
+Icon=free.toq.rainbow
+Categories=Utility;
+StartupWMClass=OLED-Saver
+X-Flatpak=free.toq.rainbow

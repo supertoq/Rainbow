@@ -1,0 +1,46 @@
+id: free.basti.oledsaver
+runtime: org.gnome.Platform
+runtime-version: "49"
+sdk: org.gnome.Sdk
+command: bastis-oledsaver
+
+finish-args:
+  - --share=ipc                                           # DBus-Kommunikation oder IPC intern
+  - --socket=fallback-x11                                 # X11-Fallback
+  - --socket=wayland                                      # Wayland...
+  - --socket=session-bus                                  # Session-Bus für KDE & Flatpak-GNOME
+  - --socket=system-bus                                   # für systemd-Inhibit 
+  - --device=dri                                          # GPU...
+  - --talk-name=org.freedesktop.login1                    # systemd-Inhibit
+  - --talk-name=org.freedesktop.ScreenSaver               # anscheinend nicht in Flatpak zulässig!
+#  - --talk-name=org.kde.Solid.PowerManagement.PolicyAgent # KDE Inhibit
+#  - --filesystem=home                                     # Zugriff auf USER-Daten
+#  - --env=LC_ALL=C.UTF-8                                  # Lokalisierung
+#  - --own-name=org.freedesktop.ScreenSaver                # notwendig für DBus-Objekt unter diesem Namen
+#  - --own-name=free.basti.oledsaver                       # für App-DBus-Name
+
+modules:
+  - name: oled-saver
+    buildsystem: simple
+    build-commands:
+      # ----- Erstelle Verzeichnis‑Struktur -----
+      - mkdir -p _build/bin _build/share/locale/en_US/LC_MESSAGES _build/share/applications _build/share/icons/hicolor/scalable/apps _build/share/icons/hicolor/128x128/apps _build//share/screenshots
+
+      # ----- Kompilieren der Anwendung -----
+      - gcc $(pkg-config --cflags gtk4 libadwaita-1 dbus-1) -o _build/bin/bastis-oledsaver src/main.c src/free.basti.oledsaver.gresource.c $(pkg-config --libs gtk4 libadwaita-1 dbus-1)
+
+      # ----- Erstellen der .po‑Datei -----
+      - msgfmt src/po/en_US.po --output-file=_build/share/locale/en_US/LC_MESSAGES/bastis-oledsaver.mo
+
+      # ----- Installation
+      - install -D -m 0755 _build/bin/bastis-oledsaver /app/bin/bastis-oledsaver
+      - install -D -m 0644 packaging/free.basti.oledsaver.desktop /app/share/applications/free.basti.oledsaver.desktop
+      - install -D -m 0644 packaging/free.basti.oledsaver.svg /app/share/icons/hicolor/scalable/apps/free.basti.oledsaver.png
+      - install -D -m 0644 packaging/free.basti.oledsaver.png /app/share/icons/hicolor/128x128/apps/free.basti.oledsaver.png
+      - install -D -m 0644 packaging/free.basti.oledsaver.metainfo.xml /app/share/metainfo/free.basti.oledsaver.metainfo.xml
+      - install -D -m 0644 packaging/oledsaver_preview_img1.png /app/share/screenshots/oledsaver_preview_img1.png
+      - install -D -m 0644 _build/share/locale/en_US/LC_MESSAGES/bastis-oledsaver.mo /app/share/locale/en_US/LC_MESSAGES/bastis-oledsaver.mo
+
+    sources:
+      - type: dir
+        path: .
