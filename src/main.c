@@ -80,7 +80,7 @@ static void show_about (GSimpleAction *action, GVariant *parameter, gpointer use
     /* About‑Dialog anlegen */
     AdwAboutDialog *about = ADW_ABOUT_DIALOG (adw_about_dialog_new ());
     adw_about_dialog_set_application_name (about, "Rainbow");
-    adw_about_dialog_set_version (about, "0.7");
+    adw_about_dialog_set_version (about, "0.7.2");
     adw_about_dialog_set_developer_name (about, "toq");
     adw_about_dialog_set_website (about, "https://github.com/super-toq/rainbow");
     adw_about_dialog_set_comments(about, "Do not use on OLED displays!\n"
@@ -136,8 +136,7 @@ static void show_about (GSimpleAction *action, GVariant *parameter, gpointer use
      //  aktiviert von enable_mouse_exit_after_delay() 
 static gboolean
 on_mouse_move_exit_fullscreen(GtkEventControllerMotion *controller,
-                              gdouble x, gdouble y,
-                              gpointer user_data)
+                          gdouble x, gdouble y, gpointer user_data)
 {
     GtkWindow *window = GTK_WINDOW(user_data);
 
@@ -165,6 +164,7 @@ on_mouse_move_exit_fullscreen(GtkEventControllerMotion *controller,
     g_idle_add((GSourceFunc)gtk_window_destroy, window);
 
     g_print("Mouse motion exits fullscreen mode\n");
+
     return TRUE;
 }
 
@@ -260,12 +260,12 @@ on_fullscreen_button_clicked(GtkButton *button, gpointer user_data)
 {
     GtkApplication *app = GTK_APPLICATION(user_data);
 
-    /* ---- "ib" über Buttons holen ---- */
+    /* 1. "ib"-Wert über Buttons holen ---- */
     IntervalButtons *ib = g_object_get_data(G_OBJECT(button), "interval_buttons");
     if (!ib) return;
 
 
-    /* ---- Fullscreen-Fenster erzeugen ---- */
+    /* 2. Fullscreen-Fenster erzeugen ---- */
     GtkWidget *fullscreen_window = gtk_application_window_new(app);
     ib->fullscreen_window = fullscreen_window; // hier speichern!
     gtk_window_set_title(GTK_WINDOW(fullscreen_window), _("Vollbild"));
@@ -273,30 +273,30 @@ on_fullscreen_button_clicked(GtkButton *button, gpointer user_data)
     gtk_window_fullscreen(GTK_WINDOW(fullscreen_window));
     gtk_window_present(GTK_WINDOW(fullscreen_window));
 
-    /* ---- Motion‑Controller ---- */
+    /* 3. Motion‑Controller erstellen ---- */
     GtkEventController *motion = gtk_event_controller_motion_new();
     g_signal_connect(motion, "motion",
-                     G_CALLBACK(on_mouse_move_exit_fullscreen),
-                     fullscreen_window);
+                     G_CALLBACK(on_mouse_move_exit_fullscreen), fullscreen_window);
     gtk_widget_add_controller(fullscreen_window, motion);
+    /* 3.1 Motion-Handler vorerst deaktivieren */
     gtk_event_controller_set_propagation_phase(motion, GTK_PHASE_NONE);
 
-    /* ---- Timer für Farben starten – Referenz halten ---- */
+    /* 4. Timer für Farben auf 0 setzen ---- */
     if (colour_timer > 0) {
         g_source_remove(colour_timer);
         colour_timer = 0;
     }
 
-    /* Referenz auf das Window erhöhen, damit der Timer eine gültige Referenz hat */
+    /* 5. Referenzwert auf das Window erhöhen, damit der Timer eine gültige Referenz hat */
     g_object_ref(fullscreen_window);
     colour_timer = g_timeout_add(ib->interval_ms, change_background_colour, fullscreen_window);
 
-    /* Motion-Handler zum Beenden des Fullscr.-Fensters, nach 1S Verzögerung aktivieren */
+    /* 6. Verzögerung in Sekunden, bir zur Aktivierung des Motion-Handlers --- */
     g_timeout_add_seconds(1, enable_mouse_exit_after_delay, motion);
-    /* notwendig damit on_mouse_move_exit_fullscreen() auch auf ib zugreifen kann */
+    // notwendig damit on_mouse_move_exit_fullscreen() auch auf ib zugreifen kann:
     g_object_set_data(G_OBJECT(fullscreen_window), "interval_buttons", ib);
 
-    /* Standby Prevention starten */
+    /* 7. Standby Prevention starten --- */
 //!!    start_standby_prevention();
 }
 
@@ -316,25 +316,23 @@ static void on_activate (AdwApplication *app, gpointer)
     /* ----- Adwaita-Fenster ---------------------------------------- */
     AdwApplicationWindow *adw_win = ADW_APPLICATION_WINDOW (adw_application_window_new (GTK_APPLICATION (app))); 
 
-    gtk_window_set_title (GTK_WINDOW(adw_win), "Rainbow");   // Fenstertitel
+    gtk_window_set_title (GTK_WINDOW(adw_win), "Rainbow");        // Fenstertitel
     gtk_window_set_default_size (GTK_WINDOW(adw_win), 360, 460);  // Standard-Fenstergröße
-    gtk_window_set_resizable (GTK_WINDOW (adw_win), FALSE);        // Skalierung nicht erlauben
+    gtk_window_set_resizable (GTK_WINDOW (adw_win), FALSE);       // Skalierung nicht erlauben
     gtk_window_present (GTK_WINDOW(adw_win));                     // Fenster anzeigen lassen
 
-    /* ----- ToolbarView (Root‑Widget)  ----------------------------- */
-    AdwToolbarView *toolbar_view = 
-             ADW_TOOLBAR_VIEW (adw_toolbar_view_new ());
-    adw_application_window_set_content (
-                   adw_win, GTK_WIDGET (toolbar_view));
+    /* ----- ToolbarView (Root-Widget)  ----------------------------- */
+    AdwToolbarView *toolbar_view = ADW_TOOLBAR_VIEW (adw_toolbar_view_new ());
+    adw_application_window_set_content (adw_win, GTK_WIDGET (toolbar_view));
 
     /* ----- HeaderBar mit TitelWidget ------------------------------ */
     AdwHeaderBar *header = ADW_HEADER_BAR (adw_header_bar_new());
     /* Label mit Pango‑Markup erzeugen */
     GtkLabel *title_label = GTK_LABEL(gtk_label_new (NULL));
-    gtk_label_set_markup (title_label, "<b>Rainbow</b>");      // Fenstertitel in Markup
-    gtk_label_set_use_markup (title_label, TRUE);                        //Markup‑Parsing aktivieren
-    adw_header_bar_set_title_widget (header, GTK_WIDGET (title_label)); //Label als Title‑Widget einsetzen
-    adw_toolbar_view_add_top_bar (toolbar_view, GTK_WIDGET (header));  //Header‑Bar zur Toolbar‑View hinzuf
+    gtk_label_set_markup (title_label, "<b>Rainbow</b>");               // Fenstertitel in Markup
+    gtk_label_set_use_markup (title_label, TRUE);                       // Markup‑Parsing aktivieren
+    adw_header_bar_set_title_widget (header, GTK_WIDGET (title_label)); // Label als Title‑Widget einsetzen
+    adw_toolbar_view_add_top_bar (toolbar_view, GTK_WIDGET (header));   // Header‑Bar zur Toolbar‑View hinzuf
 
     /* --- Hamburger-Button innerhalb der Headerbar ----------------- */
     GtkMenuButton *menu_btn = GTK_MENU_BUTTON (gtk_menu_button_new ());
@@ -355,22 +353,23 @@ static void on_activate (AdwApplication *app, gpointer)
     g_action_map_add_action_entries (G_ACTION_MAP (app), entries, G_N_ELEMENTS (entries), app);
 
     /* ---- Haupt‑Box ----------------------------------------------- */
-    GtkBox *main_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 2));
-//    gtk_box_set_spacing(GTK_BOX(main_box), -0);               // Minus-Spacer, zieht unteren Teil nach oben
-    gtk_widget_set_margin_top   (GTK_WIDGET(main_box), 35);     // Rand unterhalb Toolbar
+    GtkBox *main_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 12));
+    gtk_box_set_spacing(GTK_BOX(main_box), -14);                // Minus-Spacer, zieht unteren Teil nach oben
+    gtk_widget_set_margin_top   (GTK_WIDGET(main_box), 15);     // Rand unterhalb Toolbar
     gtk_widget_set_margin_bottom(GTK_WIDGET(main_box), 35);     // unterer Rand unteh. der Buttons
-    gtk_widget_set_margin_start (GTK_WIDGET(main_box), 20);     // links
-    gtk_widget_set_margin_end   (GTK_WIDGET(main_box), 20);     // rechts
+    gtk_widget_set_margin_start (GTK_WIDGET(main_box), 15);     // links
+    gtk_widget_set_margin_end   (GTK_WIDGET(main_box), 15);     // rechts
     gtk_widget_set_hexpand (GTK_WIDGET(main_box), TRUE);
     gtk_widget_set_vexpand (GTK_WIDGET(main_box), FALSE);
 
-    /* ----- Label 1 ------------------------------------------------ */
+    /* ----- Label1 ------------------------------------------------- */
     GtkWidget *label1 = gtk_label_new(_("Pixel Refresher\n"));
     gtk_box_append(main_box, label1);
 
     /* ----- Icon --------------------------------------------------- */
     GtkWidget *icon = gtk_image_new_from_resource("/free/toq/rainbow/icon1");
-    gtk_image_set_pixel_size(GTK_IMAGE(icon), 132);
+    gtk_widget_set_halign(icon, GTK_ALIGN_CENTER);
+    gtk_image_set_pixel_size(GTK_IMAGE(icon), 192);
     gtk_box_append(main_box, icon);
 
     /* ----- Label2 ------------------------------------------------- */
@@ -431,12 +430,16 @@ static void on_activate (AdwApplication *app, gpointer)
     gtk_box_append(button_box, quit_button);
     gtk_box_append(button_box, setfullscreen_button);
     gtk_box_append(main_box, GTK_WIDGET(button_box));
+    /* -----  Haupt-Box zur ToolbarView hinzufügen ------------------ */
     adw_toolbar_view_set_content(toolbar_view, GTK_WIDGET(main_box));
 
+    /* ----- Haupt-Fenster desktop‑konform anzeigen ----------------- */
+    gtk_window_present(GTK_WINDOW(adw_win));
 }
 
-/* ------------------------------------------------------------------ */
-/* ----- main ------------------------------------------------------- */
+/* --------------------------------------------------------------------------- */
+/* Anwendungshauptteil, main()                                                 */
+/* --------------------------------------------------------------------------- */
 int main (int argc, char **argv)
 {
     /* Arbeitsverzeichnis ermitteln */
