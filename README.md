@@ -1,9 +1,9 @@
 # Rainbow
 Rainbow ist ein kleines Dienstprogramm, dass eingefrorene oder „verhakte“ LCD-Pixel wieder zum Leben holen soll.  
 Dabei sendet Rainbow wiederholt Farb-Signale an den Bildschirm, wodurch feststeckende Sub-Pixel (sogenannte „stuck pixels“) gelöst und temporäre Ghosting‑Effekte reduziert werden sollen.  
-Achtung, wenden sie dieses oder ähnlicheProgramm niemals auf OLED Display an. Der unsachgemäße Einsatz eines Pixel-Refreshers kann ihren Display Schaden zufügen!  
+Achtung, wenden sie dieses oder ähnliche Programme niemals auf OLED Displays an. Der unsachgemäße Einsatz eines solchen Programms (Pixel-Refresher) kann ihr Display beschädigen!  
   
-[Rainbow](rainbow_preview_img1.png?raw=true) 
+![rainbow](rainbow_preview_img1.png?raw=true) 
   
   
   

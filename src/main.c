@@ -80,15 +80,15 @@ static void show_about (GSimpleAction *action, GVariant *parameter, gpointer use
     /* About‑Dialog anlegen */
     AdwAboutDialog *about = ADW_ABOUT_DIALOG (adw_about_dialog_new ());
     adw_about_dialog_set_application_name (about, "Rainbow");
-    adw_about_dialog_set_version (about, "0.7.2");
+    adw_about_dialog_set_version (about, "0.7.3");
     adw_about_dialog_set_developer_name (about, "toq");
     adw_about_dialog_set_website (about, "https://github.com/super-toq/rainbow");
     adw_about_dialog_set_comments(about, "Do not use on OLED displays!\n"
                                          "Only use it if you know what you're doing. "
                                          "Find out beforehand about any damage to the display!\n"
-                                         "The author provides no warranty and assumes no liability"
-                                         "for any direct or indirect damages resulting from the use"
-                                         " of this software.");
+                                         "The author provides no warranty and assumes no liability "
+                                         "for any direct or indirect damages resulting from the use "
+                                         "of this software.");
 
     /* Lizenz – BSD2 wird als „custom“ angegeben */
     adw_about_dialog_set_license_type (about, GTK_LICENSE_CUSTOM);
@@ -443,7 +443,7 @@ static void on_activate (AdwApplication *app, gpointer)
 int main (int argc, char **argv)
 {
     /* Arbeitsverzeichnis ermitteln */
-    char *app_dir = g_get_current_dir();  
+    const char *app_dir = g_get_current_dir();  
     const char *locale_path = NULL;
     const char *flatpak_id = getenv("FLATPAK_ID"); //flatpak string 
 
