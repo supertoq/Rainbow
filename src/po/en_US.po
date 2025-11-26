@@ -1,0 +1,43 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <toq@mailbox.org>, 2025.
+#
+#: src/main.c:569
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-11-26 14:11+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: super-toq <toq@mailbox.org>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: german/english en_US\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/main.c:459
+msgid "Vollbild"
+msgstr "Fullscreen"
+
+#: src/main.c:532
+msgid "Über Rainbow"
+msgstr "About Rainbow"
+
+#: src/main.c:554
+msgid "Pixel Refresher\n"
+msgstr "Pixel Refresher\n"
+
+#: src/main.c:564
+msgid "Farbintervall auswählen: \n"
+msgstr "Select colour interval: \n"
+
+#: src/main.c:604
+msgid " Beenden "
+msgstr " Quit "
+
+#: src/main.c:610
+msgid "Colouring!"
+msgstr "Colouring!"

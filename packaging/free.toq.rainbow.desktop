@@ -1,9 +1,14 @@
 [Desktop Entry]
 Type=Application
 Name=Rainbow
-Comment=...
+Comment=Small utility intended to revive frozen or 'stuck' LCD pixels.
 Exec=toq-rainbow
 Icon=free.toq.rainbow
 Categories=Utility;
-StartupWMClass=OLED-Saver
+StartupWMClass=Rainbow
 X-Flatpak=free.toq.rainbow
+X-AppStream-Metadata=free.toq.rainbow.metainfo.xml
+X-AppStream-Screenshot=share/pixmaps/rainbow_preview_img1.png
+X-KDE-PluginInfo-Name=Rainbow
+X-KDE-PluginInfo-Version=0.9
+X-KDE-PluginInfo-Category=Utility

@@ -71,6 +71,187 @@ static const char *colours[] = {
                   "#FFFFFF"
 };
 
+/* ----- Funktionen zur Standby-Verhinderung ------------------------ */
+/* ----- GNOME ScreenSaver Inhibit ---------------------------------- */
+static void start_gnome_inhibit(void) {
+    DBusError err;
+    DBusConnection *conn;
+    DBusMessage *msg, *reply;
+    DBusMessageIter args;
+
+    dbus_error_init(&err);
+    /* Session-Bus */
+    conn = dbus_bus_get(DBUS_BUS_SESSION, &err);
+    if (!conn || dbus_error_is_set(&err)) {
+    g_warning("[GNOME] DBus error: %s\n", err.message); dbus_error_free(&err);
+    return; 
+    }
+
+    /* DBus-Auffruf vorbereiten */
+    msg = dbus_message_new_method_call(
+        "org.freedesktop.ScreenSaver",
+        "/ScreenSaver",
+        "org.freedesktop.ScreenSaver",
+        "Inhibit"
+    );
+    
+    if (!msg) {
+    g_warning("[GNOME] Error creating the DBus message (1)\n");
+    return; }
+
+    const char *app = "OLED-Saver";
+    const char *reason = "Prevent Standby";
+    dbus_message_iter_init_append(msg, &args);
+    dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &app);
+    dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &reason);
+
+    /* Nachricht senden */
+    reply = dbus_connection_send_with_reply_and_block(conn, msg, -1, &err);
+
+    if (!reply || dbus_error_is_set(&err)) { 
+       g_warning("[GNOME] Inhibit failed: %s\n", err.message);
+       dbus_error_free(&err); 
+       dbus_message_unref(msg); 
+    return; 
+    }
+
+    /* Antwort auslesen (COOKIE als uint32) */
+    DBusMessageIter iter;
+    if (!dbus_message_iter_init(reply, &iter) || 
+       dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
+       g_warning("[GNOME] Inhibit reply invalid (no cookie)\n"); 
+       dbus_message_unref(msg); dbus_message_unref(reply); return;
+    }
+    dbus_message_iter_get_basic(&iter, &gnome_cookie);
+    g_print("[GNOME] Inhibit active, cookie=%u\n", gnome_cookie);
+    dbus_message_unref(msg);
+    dbus_message_unref(reply);
+}
+
+/* ----- Stopt Gnome Inhibit ---------------------------------------- */
+static void stop_gnome_inhibit(void) {
+    if (!gnome_cookie) return;
+
+    DBusError err;
+    DBusConnection *conn;
+    DBusMessage *msg;
+    DBusMessageIter args;
+
+    dbus_error_init(&err);
+
+    conn = dbus_bus_get(DBUS_BUS_SESSION, &err);
+    if (!conn || dbus_error_is_set(&err)) {
+       g_warning("[GNOME] DBus error (session): %s\n", err.message);
+       dbus_error_free(&err); return; }
+
+    msg = dbus_message_new_method_call(
+        "org.freedesktop.ScreenSaver",
+        "/ScreenSaver",
+        "org.freedesktop.ScreenSaver",
+        "UnInhibit"
+    );
+
+    if (!msg) {
+        g_warning("[GNOME] Error creating the DBus message (2)\n");
+        return;
+    }
+
+    dbus_message_iter_init_append(msg, &args);
+    dbus_message_iter_append_basic(&args, DBUS_TYPE_UINT32, &gnome_cookie);
+
+    dbus_connection_send(conn, msg, NULL);
+    dbus_message_unref(msg);
+    g_print("[GNOME] Inhibit closed (cookie=%u)\n", gnome_cookie);
+    gnome_cookie = 0;
+}
+
+/* ----- systemd/KDE login1.Manager Inhibit ------------------------- */
+static void start_system_inhibit(void) {
+    DBusError err;
+    DBusConnection *conn;
+    DBusMessage *msg, *reply;
+    DBusMessageIter args;
+
+    /* Fehlerbehandlung initialisieren */
+    dbus_error_init(&err);
+
+    /* Verbindung zum Systembus herstellen */
+    conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
+    if (!conn || dbus_error_is_set(&err)) {
+       g_warning("System DBus error: %s\n", err.message);
+       dbus_error_free(&err); return; 
+    }
+
+    /* Methodenaufruf vorbereiten */
+    msg = dbus_message_new_method_call(
+        "org.freedesktop.login1",
+        "/org/freedesktop/login1",
+        "org.freedesktop.login1.Manager",
+        "Inhibit");
+
+    if (!msg) {
+       g_warning("[SYSTEM] Error creating the DBus message\n");
+       return;
+    }
+
+    /* Argumente für Inhibit vorbereiten */
+    const char *what = "sleep:idle:shutdown:handle-lid-switch:handle-suspend-key";
+    const char *who  = "OLED-Saver";
+    const char *why  = "Prevent Standby";
+    const char *mode = "block";
+
+    dbus_message_iter_init_append(msg, &args);
+    dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &what);
+    dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &who);
+    dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &why);
+    dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &mode);
+
+     /* Methode senden und Antwort empfangen */
+    reply = dbus_connection_send_with_reply_and_block(conn, msg, -1, &err);
+    if (!reply || dbus_error_is_set(&err)) {
+       g_warning("[SYSTEM] Inhibit failed: %s\n", err.message);
+       dbus_error_free(&err); dbus_message_unref(msg);
+       return; 
+    }
+
+    DBusMessageIter iter;
+    if (!dbus_message_iter_init(reply, &iter) ||
+        dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UNIX_FD) {
+        g_warning("[SYSTEM] Inhibit reply invalid\n");
+        dbus_message_unref(msg);
+        dbus_message_unref(reply);
+        return;
+    }
+
+    dbus_message_iter_get_basic(&iter, &system_fd);
+    g_print("[SYSTEM] Inhibit active, fd=%d\n", system_fd);
+    /* Aufräumen */
+    dbus_message_unref(msg);
+    dbus_message_unref(reply);
+}
+
+/* ----- Stop System Inhibit ---------------------------------------- */
+static void stop_system_inhibit(void) {
+    if (system_fd < 0) return;
+    close(system_fd);
+    system_fd = -1;
+    g_print("[System] Preventing standby has been stopped\n");
+}
+
+/* --- START --- ausgelöst in on_activate --------------------------- */
+static void start_standby_prevention(void) {
+    DesktopEnvironment de = detect_desktop();
+    if (de == DESKTOP_GNOME) start_gnome_inhibit();
+    start_system_inhibit(); // KDE, XFCE, MATE
+}
+
+/* --- STOP --- ausgelöst beim shutdown ----------------------------- */
+static void stop_standby_prevention(void) {
+    stop_gnome_inhibit();
+    stop_system_inhibit();
+}
+/* ----- ENDE Standby-Verhinderung ---------------------------------- */
+
 
 
 /* ----- Callback: About-Dialog öffnen ------------------------------ */
@@ -80,15 +261,22 @@ static void show_about (GSimpleAction *action, GVariant *parameter, gpointer use
     /* About‑Dialog anlegen */
     AdwAboutDialog *about = ADW_ABOUT_DIALOG (adw_about_dialog_new ());
     adw_about_dialog_set_application_name (about, "Rainbow");
-    adw_about_dialog_set_version (about, "0.7.3");
+    adw_about_dialog_set_version (about, "0.9.1");
     adw_about_dialog_set_developer_name (about, "toq");
     adw_about_dialog_set_website (about, "https://github.com/super-toq/rainbow");
-    adw_about_dialog_set_comments(about, "Do not use on OLED displays!\n"
+    adw_about_dialog_set_comments(about, "Caution: Please read this regarding the protection "
+                                         "of your hardware and your health!\n\n"
+                                         "Do not use on OLED displays! \n"
                                          "Only use it if you know what you're doing. "
                                          "Find out beforehand about any damage to the display!\n"
                                          "The author provides no warranty and assumes no liability "
-                                         "for any direct or indirect damages resulting from the use "
-                                         "of this software.");
+                                         "for any direct or indirect damages resulting "
+                                         "from the use of this software. \n\n"
+                                         "Health warning:\nRapid colour changes can cause headaches, "
+                                         "dizziness, or light sensitivity in susceptible individuals. "
+                                         "Do not look at the flashing image— it may trigger migraine or "
+                                         "epilepsy in sensitive users. Look away and turn off the tool "
+                                         "immediately if any discomfort occurs.");
 
     /* Lizenz – BSD2 wird als „custom“ angegeben */
     adw_about_dialog_set_license_type (about, GTK_LICENSE_CUSTOM);
@@ -297,7 +485,7 @@ on_fullscreen_button_clicked(GtkButton *button, gpointer user_data)
     g_object_set_data(G_OBJECT(fullscreen_window), "interval_buttons", ib);
 
     /* 7. Standby Prevention starten --- */
-//!!    start_standby_prevention();
+    start_standby_prevention();
 }
 
 /* ----- Callback Beenden-Button ------------------------------------ */
@@ -353,7 +541,7 @@ static void on_activate (AdwApplication *app, gpointer)
     g_action_map_add_action_entries (G_ACTION_MAP (app), entries, G_N_ELEMENTS (entries), app);
 
     /* ---- Haupt‑Box ----------------------------------------------- */
-    GtkBox *main_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 12));
+    GtkBox *main_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 2));
     gtk_box_set_spacing(GTK_BOX(main_box), -14);                // Minus-Spacer, zieht unteren Teil nach oben
     gtk_widget_set_margin_top   (GTK_WIDGET(main_box), 15);     // Rand unterhalb Toolbar
     gtk_widget_set_margin_bottom(GTK_WIDGET(main_box), 35);     // unterer Rand unteh. der Buttons
@@ -373,7 +561,7 @@ static void on_activate (AdwApplication *app, gpointer)
     gtk_box_append(main_box, icon);
 
     /* ----- Label2 ------------------------------------------------- */
-    GtkWidget *label2 = gtk_label_new(_("Farbwechselintervall wählen: \n"));
+    GtkWidget *label2 = gtk_label_new(_("Farbintervall auswählen: \n"));
     gtk_box_append(main_box, label2);
 
     /* ----- ActionRow-4-Buttons ------------------------------------ */
@@ -419,7 +607,7 @@ static void on_activate (AdwApplication *app, gpointer)
                  G_CALLBACK(on_quitbutton_clicked), adw_win);
 
     /* ----- Fullscreen-Button -------------------------------------- */
-    GtkWidget *setfullscreen_button = gtk_button_new_with_label(_(" Colours "));
+    GtkWidget *setfullscreen_button = gtk_button_new_with_label(_("Colouring!"));
     gtk_widget_set_halign(setfullscreen_button, GTK_ALIGN_CENTER);
     g_signal_connect(setfullscreen_button, "clicked",
                                      G_CALLBACK(on_fullscreen_button_clicked), app);
@@ -470,7 +658,7 @@ int main (int argc, char **argv)
         adw_application_new ("free.toq.rainbow", G_APPLICATION_DEFAULT_FLAGS);
 
     g_signal_connect (app, "activate", G_CALLBACK (on_activate), NULL); // Signal mit on_activate verbinden
-//!!    g_signal_connect(app, "shutdown", G_CALLBACK(stop_standby_prevention), NULL);
+    g_signal_connect(app, "shutdown", G_CALLBACK(stop_standby_prevention), NULL);
     /* --- g_application_run startet Anwendung u. wartet auf Ereignis --- */
     return g_application_run (G_APPLICATION (app), argc, argv);
 }
