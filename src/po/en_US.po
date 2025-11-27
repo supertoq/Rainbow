@@ -39,5 +39,5 @@ msgid " Beenden "
 msgstr " Quit "
 
 #: src/main.c:610
-msgid "Colouring!"
-msgstr "Colouring!"
+msgid " Start! "
+msgstr " Start! "

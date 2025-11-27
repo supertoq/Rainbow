@@ -261,7 +261,7 @@ static void show_about (GSimpleAction *action, GVariant *parameter, gpointer use
     /* About‑Dialog anlegen */
     AdwAboutDialog *about = ADW_ABOUT_DIALOG (adw_about_dialog_new ());
     adw_about_dialog_set_application_name (about, "Rainbow");
-    adw_about_dialog_set_version (about, "0.9.1");
+    adw_about_dialog_set_version (about, "0.9.2");
     adw_about_dialog_set_developer_name (about, "toq");
     adw_about_dialog_set_website (about, "https://github.com/super-toq/rainbow");
     adw_about_dialog_set_comments(about, "Caution: Please read this regarding the protection "
@@ -607,7 +607,7 @@ static void on_activate (AdwApplication *app, gpointer)
                  G_CALLBACK(on_quitbutton_clicked), adw_win);
 
     /* ----- Fullscreen-Button -------------------------------------- */
-    GtkWidget *setfullscreen_button = gtk_button_new_with_label(_("Colouring!"));
+    GtkWidget *setfullscreen_button = gtk_button_new_with_label(_(" Start! "));
     gtk_widget_set_halign(setfullscreen_button, GTK_ALIGN_CENTER);
     g_signal_connect(setfullscreen_button, "clicked",
                                      G_CALLBACK(on_fullscreen_button_clicked), app);

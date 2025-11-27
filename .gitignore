@@ -1,0 +1,7 @@
+_build/
+_build-dir/
+.flatpak/
+.flatpak-builder/
+_tmp/
+_repo/
+free.toq.rainbow.flatpak
