@@ -1,4 +1,4 @@
-/* Rainbow is part of my learning projects;
+/* Rainbow is part of my learning project;
  * toq 2025  LICENSE: BSD 2-Clause "Simplified"
  *
  *
@@ -261,7 +261,7 @@ static void show_about (GSimpleAction *action, GVariant *parameter, gpointer use
     /* About‑Dialog anlegen */
     AdwAboutDialog *about = ADW_ABOUT_DIALOG (adw_about_dialog_new ());
     adw_about_dialog_set_application_name (about, "Rainbow");
-    adw_about_dialog_set_version (about, "0.9.2");
+    adw_about_dialog_set_version (about, "0.9.3");
     adw_about_dialog_set_developer_name (about, "toq");
     adw_about_dialog_set_website (about, "https://github.com/super-toq/rainbow");
     adw_about_dialog_set_comments(about, "Caution: Please read this regarding the protection "
@@ -501,13 +501,46 @@ static void on_quitbutton_clicked (GtkButton *button, gpointer user_data)
 /* ------------------------------------------------------------------ */
 static void on_activate (AdwApplication *app, gpointer)
 {
+    /* ----- CSS-Provider für zusätzliche Anpassungen --------------- */
+    // orange=#db9c4a , lightred=#ff8484 , grey=#c0bfbc
+    GtkCssProvider *provider = gtk_css_provider_new();
+    gtk_css_provider_load_from_string(provider,
+                            ".opaque.custom-suggested-action-button1 {"
+                                         "  background-color: #c0bfbc;"
+                                                      "  color: black;"
+                                                                    "}"
+
+                            ".opaque.custom-suggested-action-button2 {"
+                                         "  background-color: #434347;"
+                                                    "  color: #ff8484;"
+                                                                    "}"
+
+                            ".devel  headerbar                       {"
+                                         "  background-image:         "
+                                         "  repeating-linear-gradient("
+                                                             "  130deg,"
+                                                     "  #faf2e7 0,    "  /* helles Orange */
+                                                     "  #fafafa 24px,  "
+                                                     "  #f3d5a5 24px,  "  /* dunkleres Orange */
+                                                     "  #faf2e7 48px   "
+                                                                   " );"
+                                                                   "  }" 
+                                                                      );
+
+    gtk_style_context_add_provider_for_display( gdk_display_get_default(),
+    GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    g_object_unref(provider);
+
     /* ----- Adwaita-Fenster ---------------------------------------- */
     AdwApplicationWindow *adw_win = ADW_APPLICATION_WINDOW (adw_application_window_new (GTK_APPLICATION (app))); 
+
+    /* ----- .devel-Klasse für Fensterrahmen ----- */
+    gtk_widget_add_css_class (GTK_WIDGET (adw_win), "devel");
+
 
     gtk_window_set_title (GTK_WINDOW(adw_win), "Rainbow");        // Fenstertitel
     gtk_window_set_default_size (GTK_WINDOW(adw_win), 360, 460);  // Standard-Fenstergröße
     gtk_window_set_resizable (GTK_WINDOW (adw_win), FALSE);       // Skalierung nicht erlauben
-    gtk_window_present (GTK_WINDOW(adw_win));                     // Fenster anzeigen lassen
 
     /* ----- ToolbarView (Root-Widget)  ----------------------------- */
     AdwToolbarView *toolbar_view = ADW_TOOLBAR_VIEW (adw_toolbar_view_new ());
@@ -529,7 +562,7 @@ static void on_activate (AdwApplication *app, gpointer)
 
     /* --- Popover-Menu im Hamburger -------------------------------- */
     GMenu *menu = g_menu_new ();
-    g_menu_append (menu, _("Über Rainbow"), "app.show-about");
+    g_menu_append (menu, _("Info zu Rainbow"), "app.show-about");
     GtkPopoverMenu *popover = GTK_POPOVER_MENU (
         gtk_popover_menu_new_from_model (G_MENU_MODEL (menu)));
     gtk_menu_button_set_popover (menu_btn, GTK_WIDGET (popover));
@@ -603,14 +636,12 @@ static void on_activate (AdwApplication *app, gpointer)
     /* ----- Beenden-Button ----------------------------------------- */
     GtkWidget *quit_button = gtk_button_new_with_label(_(" Beenden "));
     gtk_widget_set_halign(quit_button, GTK_ALIGN_CENTER);
-    g_signal_connect(quit_button, "clicked",
-                 G_CALLBACK(on_quitbutton_clicked), adw_win);
+    g_signal_connect(quit_button, "clicked", G_CALLBACK(on_quitbutton_clicked), adw_win);
 
     /* ----- Fullscreen-Button -------------------------------------- */
     GtkWidget *setfullscreen_button = gtk_button_new_with_label(_(" Start! "));
     gtk_widget_set_halign(setfullscreen_button, GTK_ALIGN_CENTER);
-    g_signal_connect(setfullscreen_button, "clicked",
-                                     G_CALLBACK(on_fullscreen_button_clicked), app);
+    g_signal_connect(setfullscreen_button, "clicked", G_CALLBACK(on_fullscreen_button_clicked), app);
 //!!        g_object_set_data(G_OBJECT(setfullscreen_button), "set1_check", set1_check);
         g_object_set_data(G_OBJECT(setfullscreen_button), "interval_buttons", ib);
 
