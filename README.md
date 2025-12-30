@@ -4,21 +4,17 @@ Rainbow is a small utility based on [Basti's OLED-Saver](https://github.com/supe
 >[!Caution]
 > Never apply this or similar programs on OLED displays. 
 Improper use of such a program (Pixel Fixer/Refresher) can damage your display!
-  
 
-![rainbow](rainbow_preview_img1.png?raw=true) 
+![rainbow](rainbow_preview_img1.png?raw=true)
 
   
-  
-[!Warning]  
-  
-## HEALTH WARNING:
+### HEALTH WARNING:
 Rapid colour changes can cause headaches, dizziness, or light sensitivity in susceptible individuals.  
 Do not look at the flashing image — it may trigger migraine or epilepsy in sensitive users.  
 Look away and turn off the tool immediately if any discomfort occurs.  
   
   
-## IMPORTANT – USER LIABILITY:
+### IMPORTANT – USER LIABILITY:
 I do not recommend using this software. However, by downloading, compiling this software code, and using this software ("Rainbow"), you expressly acknowledge and agree that:
   
   * Self-Responsible Use – You use the software solely at your own risk. The developer assumes no responsibility for damages that may occur to LCD, OLED, or other types of displays, including but not limited to:

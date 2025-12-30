@@ -22,6 +22,10 @@
 #include <locale.h>         // für setlocale(LC_ALL, "")
 #include <glib/gi18n.h>     // für _();
 
+#define APP_VERSION    "1.0.1"//_0
+#define APP_ID         "free.toq.rainbow"
+#define APP_NAME       "Rainbow"
+#define APP_DOMAINNAME "toq-rainbow"
 
 /* ----- Umgebung identifizieren ------------------------------------ */
 typedef enum {
@@ -36,7 +40,7 @@ typedef struct {
     GtkWidget *btn_2;
     GtkWidget *btn_3;
     GtkWidget *btn_4;
-    int interval_ms;
+    int       interval_ms;
     GtkWidget *fullscreen_window;
 } IntervalButtons;
 
@@ -67,7 +71,7 @@ static const char *colours[] = {
                   "#FF0000",      // rot
                   "#00FF00",      // grün 
                   "#0000FF",      // blau 
-                  "#FFFF00",       // gelb
+                  "#FFFF00",      // gelb
                   "#FFFFFF"
 };
 
@@ -83,8 +87,8 @@ static void start_gnome_inhibit(void) {
     /* Session-Bus */
     conn = dbus_bus_get(DBUS_BUS_SESSION, &err);
     if (!conn || dbus_error_is_set(&err)) {
-    g_warning("[GNOME] DBus error: %s\n", err.message); dbus_error_free(&err);
-    return; 
+        g_warning("[GNOME] DBus error: %s\n", err.message); dbus_error_free(&err);
+        return; 
     }
 
     /* DBus-Auffruf vorbereiten */
@@ -96,10 +100,11 @@ static void start_gnome_inhibit(void) {
     );
     
     if (!msg) {
-    g_warning("[GNOME] Error creating the DBus message (1)\n");
-    return; }
+        g_warning("[GNOME] Error creating the DBus message (1)\n");
+        return; 
+    }
 
-    const char *app = "OLED-Saver";
+    const char *app = APP_NAME;
     const char *reason = "Prevent Standby";
     dbus_message_iter_init_append(msg, &args);
     dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &app);
@@ -108,22 +113,25 @@ static void start_gnome_inhibit(void) {
     /* Nachricht senden */
     reply = dbus_connection_send_with_reply_and_block(conn, msg, -1, &err);
 
-    if (!reply || dbus_error_is_set(&err)) { 
-       g_warning("[GNOME] Inhibit failed: %s\n", err.message);
-       dbus_error_free(&err); 
-       dbus_message_unref(msg); 
-    return; 
-    }
-
     /* Antwort auslesen (COOKIE als uint32) */
     DBusMessageIter iter;
-    if (!dbus_message_iter_init(reply, &iter) || 
-       dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
-       g_warning("[GNOME] Inhibit reply invalid (no cookie)\n"); 
-       dbus_message_unref(msg); dbus_message_unref(reply); return;
+    if (!reply) {
+        g_warning("[GNOME] Inhibit failed: no reply received\n");
+        dbus_message_unref(msg);
+        return;
     }
+
+    if (!dbus_message_iter_init(reply, &iter) ||
+        dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
+        g_warning("[GNOME] Inhibit reply invalid (no cookie)\n");
+        dbus_message_unref(msg);
+        dbus_message_unref(reply);
+        return;
+    }
+
     dbus_message_iter_get_basic(&iter, &gnome_cookie);
-    g_print("[GNOME] Inhibit active, cookie=%u\n", gnome_cookie);
+    g_print("[GNOME] Inhibit active (cookie=%u)\n", gnome_cookie);
+
     dbus_message_unref(msg);
     dbus_message_unref(reply);
 }
@@ -196,7 +204,7 @@ static void start_system_inhibit(void) {
 
     /* Argumente für Inhibit vorbereiten */
     const char *what = "sleep:idle:shutdown:handle-lid-switch:handle-suspend-key";
-    const char *who  = "OLED-Saver";
+    const char *who  = "Rainbow";
     const char *why  = "Prevent Standby";
     const char *mode = "block";
 
@@ -260,11 +268,12 @@ static void show_about (GSimpleAction *action, GVariant *parameter, gpointer use
     AdwApplication *app = ADW_APPLICATION (user_data);
     /* About‑Dialog anlegen */
     AdwAboutDialog *about = ADW_ABOUT_DIALOG (adw_about_dialog_new ());
-    adw_about_dialog_set_application_name (about, "Rainbow");
-    adw_about_dialog_set_version (about, "0.9.3");
-    adw_about_dialog_set_developer_name (about, "toq");
+    adw_about_dialog_set_application_name (about, APP_NAME);
+    adw_about_dialog_set_version (about, APP_VERSION);
+    adw_about_dialog_set_developer_name (about, "super-toq");
     adw_about_dialog_set_website (about, "https://github.com/super-toq/rainbow");
-    adw_about_dialog_set_comments(about, "Caution: Please read this regarding the protection "
+    adw_about_dialog_set_comments(about, "<b>Caution:</b>\n"
+                                         "Please read this regarding the protection "
                                          "of your hardware and your health!\n\n"
                                          "Do not use on OLED displays! \n"
                                          "Only use it if you know what you're doing. "
@@ -272,41 +281,30 @@ static void show_about (GSimpleAction *action, GVariant *parameter, gpointer use
                                          "The author provides no warranty and assumes no liability "
                                          "for any direct or indirect damages resulting "
                                          "from the use of this software. \n\n"
-                                         "Health warning:\nRapid colour changes can cause headaches, "
+                                         "<b>Health warning:</b>\nRapid colour changes can cause headaches, "
                                          "dizziness, or light sensitivity in susceptible individuals. "
                                          "Do not look at the flashing image— it may trigger migraine or "
                                          "epilepsy in sensitive users. Look away and turn off the tool "
                                          "immediately if any discomfort occurs.");
 
     /* Lizenz – BSD2 wird als „custom“ angegeben */
-    adw_about_dialog_set_license_type (about, GTK_LICENSE_CUSTOM);
-    adw_about_dialog_set_license (about,
-        "BSD 2-Clause License\n\n"
-        "Copyright (c) 2025, toq\n"
-        "Redistribution and use in source and binary forms, with or without "
-        "modification, are permitted provided that the following conditions are met: "
-        "1. Redistributions of source code must retain the above copyright notice, this "
-        "list of conditions and the following disclaimer.\n"
-        "2. Redistributions in binary form must reproduce the above copyright notice, "
-        "this list of conditions and the following disclaimer in the documentation"
-        "and/or other materials provided with the distribution.\n\n"
-        "THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ''AS IS'' "
-        "AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE "
-        "IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE "
-        "DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE "
-        "FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL "
-        "DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR "
-        "SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER "
-        "CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, "
-        "OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE "
-        "OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n\n"
-        "Application Icon by SVG. \n"
-        "https://www.svgrepo.com \n"
-        "Thanks to SVG for sharing their free icons, we appreciate your generosity and respect your work.\n"
-        "LICENSE for the icon: \n"
-        "CC Attribution License \n"
-        "Follow the link to view details of the CC Attribution License: \n"
-        "https://www.svgrepo.com/page/licensing/#CC%20Attribution \n");
+    adw_about_dialog_set_license_type(about, GTK_LICENSE_BSD);
+    adw_about_dialog_set_license(about,
+                                        "Copyright © 2025, super-toq\n\n"
+                                        "This program comes WITHOUT ANY WARRANTY.\n"
+                                        "Follow the link to view the license details: "
+                                        "<a href=\"https://opensource.org/license/BSD-2-Clause\"><b>BSD 2-Clause License</b></a>\n"
+                                        "\n"
+                                        "Application Icons by SVG Repo. \n"
+                                        "<a href=\"https://www.svgrepo.com\">www.svgrepo.com</a> \n"
+                                        "Thanks to SVG Repo for sharing their free icons, "
+                                        "we appreciate your generosity and respect your work.\n"
+                                        "The icons are licensed under the \n"
+                                        "<a href=\"https://www.svgrepo.com/page/licensing/#CC%20Attribution\">"
+                                        "Creative Commons Attribution License.</a> \n"
+                                        "Colours, shapes, and sizes of the symbols (icons) have been slightly modified from the original, "
+                                        "some symbols have been combined with each other.\n"
+        );
 
 //    adw_about_dialog_set_translator_credits (about, "toq: deutsch\n toq: englisch");
       adw_about_dialog_set_application_icon (about, "free.toq.rainbow");   //IconName
@@ -322,9 +320,7 @@ static void show_about (GSimpleAction *action, GVariant *parameter, gpointer use
 
 /* ----- Mausbewegung beendet Fullscreen Fenster -------------------- */
      //  aktiviert von enable_mouse_exit_after_delay() 
-static gboolean
-on_mouse_move_exit_fullscreen(GtkEventControllerMotion *controller,
-                          gdouble x, gdouble y, gpointer user_data)
+static gboolean exit_fullscreen(GtkEventControllerMotion *controller, gdouble x, gdouble y, gpointer user_data)
 {
     GtkWindow *window = GTK_WINDOW(user_data);
 
@@ -344,9 +340,7 @@ on_mouse_move_exit_fullscreen(GtkEventControllerMotion *controller,
         ib->fullscreen_window = NULL;
 
     /* 3. Motion-Handler von diesem Controller trennen. [r!] */
-    g_signal_handlers_disconnect_by_func(controller,
-                                         G_CALLBACK(on_mouse_move_exit_fullscreen),
-                                         user_data);
+    g_signal_handlers_disconnect_by_func(controller, G_CALLBACK(exit_fullscreen), user_data);
 
     /* 4. Zerstörung, aus dem aktuellen Event-Stack heraus, sicher verschieben */
     g_idle_add((GSourceFunc)gtk_window_destroy, window);
@@ -357,8 +351,7 @@ on_mouse_move_exit_fullscreen(GtkEventControllerMotion *controller,
 }
 
 /* ----- Callback Farben-Timer -------------------------------------- */
-static gboolean
-change_background_colour(gpointer user_data)
+static gboolean change_background_colour(gpointer user_data)
 {
     GtkWidget *c_widget = GTK_WIDGET(user_data);
 
@@ -393,7 +386,7 @@ static gboolean enable_mouse_exit_after_delay(gpointer user_data)
     GtkEventController *motion = GTK_EVENT_CONTROLLER(user_data);
     
     /* Motion-Handler aktivieren */
-   gtk_event_controller_set_propagation_phase(motion, GTK_PHASE_TARGET);
+    gtk_event_controller_set_propagation_phase(motion, GTK_PHASE_TARGET);
 
 
     return G_SOURCE_REMOVE;  // Motion-Timer nur einmal ausführen
@@ -414,8 +407,8 @@ static void on_arow_button_clicked(GtkButton *btn, gpointer user_data)
     gtk_widget_add_css_class(GTK_WIDGET(btn), "suggested-action");
 
     // Intervall bestimmen
-    if (GTK_WIDGET(btn) == ib->btn_1)      ib->interval_ms = 60;
-    else if (GTK_WIDGET(btn) == ib->btn_2)  ib->interval_ms = 150;
+    if (GTK_WIDGET(btn)      == ib->btn_1) ib->interval_ms = 60;
+    else if (GTK_WIDGET(btn) == ib->btn_2) ib->interval_ms = 150;
     else if (GTK_WIDGET(btn) == ib->btn_3) ib->interval_ms = 1000;
     else if (GTK_WIDGET(btn) == ib->btn_4) ib->interval_ms = 90000;
 
@@ -443,8 +436,7 @@ static void on_arow_button_clicked(GtkButton *btn, gpointer user_data)
 
  
 /* ---------- Callback Fullscreen-Button ---------------------------- */
-static void
-on_fullscreen_button_clicked(GtkButton *button, gpointer user_data)
+static void on_fullscreen_button_clicked(GtkButton *button, gpointer user_data)
 {
     GtkApplication *app = GTK_APPLICATION(user_data);
 
@@ -463,8 +455,7 @@ on_fullscreen_button_clicked(GtkButton *button, gpointer user_data)
 
     /* 3. Motion‑Controller erstellen ---- */
     GtkEventController *motion = gtk_event_controller_motion_new();
-    g_signal_connect(motion, "motion",
-                     G_CALLBACK(on_mouse_move_exit_fullscreen), fullscreen_window);
+    g_signal_connect(motion, "motion", G_CALLBACK(exit_fullscreen), fullscreen_window);
     gtk_widget_add_controller(fullscreen_window, motion);
     /* 3.1 Motion-Handler vorerst deaktivieren */
     gtk_event_controller_set_propagation_phase(motion, GTK_PHASE_NONE);
@@ -481,7 +472,7 @@ on_fullscreen_button_clicked(GtkButton *button, gpointer user_data)
 
     /* 6. Verzögerung in Sekunden, bir zur Aktivierung des Motion-Handlers --- */
     g_timeout_add_seconds(1, enable_mouse_exit_after_delay, motion);
-    // notwendig damit on_mouse_move_exit_fullscreen() auch auf ib zugreifen kann:
+    // notwendig damit exit_fullscreen() auch auf ib zugreifen kann:
     g_object_set_data(G_OBJECT(fullscreen_window), "interval_buttons", ib);
 
     /* 7. Standby Prevention starten --- */
@@ -514,17 +505,7 @@ static void on_activate (AdwApplication *app, gpointer)
                                          "  background-color: #434347;"
                                                     "  color: #ff8484;"
                                                                     "}"
-
-                            ".devel  headerbar                       {"
-                                         "  background-image:         "
-                                         "  repeating-linear-gradient("
-                                                             "  130deg,"
-                                                     "  #faf2e7 0,    "  /* helles Orange */
-                                                     "  #fafafa 24px,  "
-                                                     "  #f3d5a5 24px,  "  /* dunkleres Orange */
-                                                     "  #faf2e7 48px   "
-                                                                   " );"
-                                                                   "  }" 
+ 
                                                                       );
 
     gtk_style_context_add_provider_for_display( gdk_display_get_default(),
@@ -538,7 +519,7 @@ static void on_activate (AdwApplication *app, gpointer)
     gtk_widget_add_css_class (GTK_WIDGET (adw_win), "devel");
 
 
-    gtk_window_set_title (GTK_WINDOW(adw_win), "Rainbow");        // Fenstertitel
+    gtk_window_set_title (GTK_WINDOW(adw_win), APP_NAME);         // Fenstertitel
     gtk_window_set_default_size (GTK_WINDOW(adw_win), 360, 460);  // Standard-Fenstergröße
     gtk_window_set_resizable (GTK_WINDOW (adw_win), FALSE);       // Skalierung nicht erlauben
 
@@ -562,7 +543,7 @@ static void on_activate (AdwApplication *app, gpointer)
 
     /* --- Popover-Menu im Hamburger -------------------------------- */
     GMenu *menu = g_menu_new ();
-    g_menu_append (menu, _("Info zu Rainbow"), "app.show-about");
+    g_menu_append (menu, _("Infos zu Rainbow"), "app.show-about");
     GtkPopoverMenu *popover = GTK_POPOVER_MENU (
         gtk_popover_menu_new_from_model (G_MENU_MODEL (menu)));
     gtk_menu_button_set_popover (menu_btn, GTK_WIDGET (popover));
@@ -575,16 +556,16 @@ static void on_activate (AdwApplication *app, gpointer)
 
     /* ---- Haupt‑Box ----------------------------------------------- */
     GtkBox *main_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 2));
-    gtk_box_set_spacing(GTK_BOX(main_box), -14);                // Minus-Spacer, zieht unteren Teil nach oben
-    gtk_widget_set_margin_top   (GTK_WIDGET(main_box), 15);     // Rand unterhalb Toolbar
-    gtk_widget_set_margin_bottom(GTK_WIDGET(main_box), 35);     // unterer Rand unteh. der Buttons
-    gtk_widget_set_margin_start (GTK_WIDGET(main_box), 15);     // links
-    gtk_widget_set_margin_end   (GTK_WIDGET(main_box), 15);     // rechts
-    gtk_widget_set_hexpand (GTK_WIDGET(main_box), TRUE);
-    gtk_widget_set_vexpand (GTK_WIDGET(main_box), FALSE);
+    gtk_box_set_spacing            (GTK_BOX(main_box), -14);    // Minus-Spacer, zieht unteren Teil nach oben
+    gtk_widget_set_margin_top   (GTK_WIDGET(main_box),  15);    // Rand unterhalb Toolbar
+    gtk_widget_set_margin_bottom(GTK_WIDGET(main_box),  35);    // unterer Rand unteh. der Buttons
+    gtk_widget_set_margin_start (GTK_WIDGET(main_box),  15);    // links
+    gtk_widget_set_margin_end   (GTK_WIDGET(main_box),  15);    // rechts
+    gtk_widget_set_hexpand (GTK_WIDGET(main_box),     TRUE);
+    gtk_widget_set_vexpand (GTK_WIDGET(main_box),    FALSE);
 
     /* ----- Label1 ------------------------------------------------- */
-    GtkWidget *label1 = gtk_label_new(_("Pixel Refresher\n"));
+    GtkWidget *label1 = gtk_label_new(_("Der Pixel Refresher\n"));
     gtk_box_append(main_box, label1);
 
     /* ----- Icon --------------------------------------------------- */
@@ -599,11 +580,11 @@ static void on_activate (AdwApplication *app, gpointer)
 
     /* ----- ActionRow-4-Buttons ------------------------------------ */
     AdwActionRow *action_row1 = ADW_ACTION_ROW(adw_action_row_new());
-    adw_preferences_row_set_title(ADW_PREFERENCES_ROW(action_row1), _(""));
+    adw_preferences_row_set_title(ADW_PREFERENCES_ROW(action_row1), "");
 
     GtkWidget *btn_1  = gtk_button_new_with_label("60ms");
     GtkWidget *btn_2  = gtk_button_new_with_label("150ms");
-    GtkWidget *btn_3  = gtk_button_new_with_label("1s");
+    GtkWidget *btn_3  = gtk_button_new_with_label("1sec");
     GtkWidget *btn_4  = gtk_button_new_with_label("1min");
 
     adw_action_row_add_suffix(action_row1, btn_1);
@@ -618,7 +599,7 @@ static void on_activate (AdwApplication *app, gpointer)
          ib->btn_4 = btn_4;
          ib->interval_ms = 1000;     // Vorgabewert A
     g_signal_connect(btn_1, "clicked", G_CALLBACK(on_arow_button_clicked), ib);
-    g_signal_connect(btn_2,  "clicked", G_CALLBACK(on_arow_button_clicked), ib);
+    g_signal_connect(btn_2, "clicked", G_CALLBACK(on_arow_button_clicked), ib);
     g_signal_connect(btn_3, "clicked", G_CALLBACK(on_arow_button_clicked), ib);
     g_signal_connect(btn_4, "clicked", G_CALLBACK(on_arow_button_clicked), ib);
 
@@ -639,7 +620,7 @@ static void on_activate (AdwApplication *app, gpointer)
     g_signal_connect(quit_button, "clicked", G_CALLBACK(on_quitbutton_clicked), adw_win);
 
     /* ----- Fullscreen-Button -------------------------------------- */
-    GtkWidget *setfullscreen_button = gtk_button_new_with_label(_(" Start! "));
+    GtkWidget *setfullscreen_button = gtk_button_new_with_label(_(" Starten "));
     gtk_widget_set_halign(setfullscreen_button, GTK_ALIGN_CENTER);
     g_signal_connect(setfullscreen_button, "clicked", G_CALLBACK(on_fullscreen_button_clicked), app);
 //!!        g_object_set_data(G_OBJECT(setfullscreen_button), "set1_check", set1_check);
@@ -671,25 +652,25 @@ int main (int argc, char **argv)
 
 
     /* ----- Localiziation-Pfad ----- */
-    setlocale(LC_ALL, "");                         // ruft die aktuelle Locale des Prozesses ab
-//    setlocale (LC_ALL, "en_US.UTF-8"); // testen!!
-    textdomain("toq-rainbow");                 // legt Text-Domain-Namen fest
-    bind_textdomain_codeset("toq-rainbow", "UTF-8");    // legt entspr. Encoding dazu fest
-    if (flatpak_id != NULL && flatpak_id[0] != '\0')  // Wenn ungleich NULL:
+    setlocale(LC_ALL, "");               // ruft die aktuelle Locale des Prozesses ab
+//    setlocale(LC_ALL, "en_US.UTF-8"); // testen!!
+    textdomain             (APP_DOMAINNAME);      // textdomain festlegen
+    bind_textdomain_codeset(APP_DOMAINNAME, "UTF-8"); 
+    if (flatpak_id != NULL && flatpak_id[0] != '\0')
     {
-        locale_path = "/app/share/locale"; // Flatpakumgebung /app/share/locale
+        locale_path = "/app/share/locale";
     } else {
-        locale_path = "/usr/share/locale"; // Native Hostumgebung /usr/share/locale
+        locale_path = "/usr/share/locale";
     }
-    bindtextdomain("toq-rainbow", locale_path);
-    //g_print("Localization files in: %s \n", locale_path); // testen
+    bindtextdomain         (APP_DOMAINNAME, locale_path);
+    //g_print("Localization files in: %s \n", locale_path); // testen!!
 
-    /* ----- Instanz erstellen + App-ID + Default-Flags ----- */
-    g_autoptr (AdwApplication) app =     
-        adw_application_new ("free.toq.rainbow", G_APPLICATION_DEFAULT_FLAGS);
 
-    g_signal_connect (app, "activate", G_CALLBACK (on_activate), NULL); // Signal mit on_activate verbinden
+    g_autoptr(AdwApplication) app =      // Instanz erstellen + App-ID + Default-Flags;
+                        adw_application_new(APP_ID, G_APPLICATION_DEFAULT_FLAGS);
+
+    g_signal_connect(app, "activate", G_CALLBACK(on_activate),             NULL);
     g_signal_connect(app, "shutdown", G_CALLBACK(stop_standby_prevention), NULL);
     /* --- g_application_run startet Anwendung u. wartet auf Ereignis --- */
-    return g_application_run (G_APPLICATION (app), argc, argv);
+    return g_application_run(G_APPLICATION (app), argc, argv);
 }

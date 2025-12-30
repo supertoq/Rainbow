@@ -24,7 +24,7 @@ modules:
     buildsystem: simple
     build-commands:
       # ----- Erstelle Verzeichnis‑Struktur -----
-      - mkdir -p _build/bin _build/share/locale/en_US/LC_MESSAGES _build/share/applications _build/share/icons/hicolor/scalable/apps _build/share/icons/hicolor/128x128/apps _build//share/pixmaps
+      - mkdir -p _build/bin _build/share/locale/en_US/LC_MESSAGES _build/share/locale/en_EN/LC_MESSAGES _build/share/applications _build/share/icons/hicolor/scalable/apps _build/share/icons/hicolor/128x128/apps _build/share/icons/hicolor/256x256/apps _build//share/pixmaps
 
       # ----- Resourcesn kompilieren -----
       - glib-compile-resources src/resources.xml --sourcedir=data/icons/ --generate-source --target=src/free.toq.rainbow.gresource.c 
@@ -32,17 +32,24 @@ modules:
       # ----- Kompilieren der Anwendung -----
       - gcc $(pkg-config --cflags gtk4 libadwaita-1 dbus-1) -o _build/bin/toq-rainbow src/main.c src/free.toq.rainbow.gresource.c $(pkg-config --libs gtk4 libadwaita-1 dbus-1)
 
+      # ----- Warunungen unterdrücken -----
+      
+
       # ----- Erstellen der .po‑Datei -----
       - msgfmt src/po/en_US.po --output-file=_build/share/locale/en_US/LC_MESSAGES/toq-rainbow.mo
+      - msgfmt src/po/en_EN.po --output-file=_build/share/locale/en_EN/LC_MESSAGES/toq-rainbow.mo
 
       # ----- Installation
       - install -D -m 0755 _build/bin/toq-rainbow /app/bin/toq-rainbow
       - install -D -m 0644 packaging/free.toq.rainbow.desktop /app/share/applications/free.toq.rainbow.desktop
-      - install -D -m 0644 packaging/free.toq.rainbow.svg /app/share/icons/hicolor/scalable/apps/free.toq.rainbow.png
-      - install -D -m 0644 packaging/free.toq.rainbow.png /app/share/icons/hicolor/128x128/apps/free.toq.rainbow.png
       - install -D -m 0644 packaging/free.toq.rainbow.metainfo.xml /app/share/metainfo/free.toq.rainbow.metainfo.xml
+      - install -D -m 0644 packaging/free.toq.rainbow.svg /app/share/icons/hicolor/scalable/apps/free.toq.rainbow.svg
+      - install -D -m 0644 packaging/128px.png /app/share/icons/hicolor/128x128/apps/free.toq.rainbow.png
+      - install -D -m 0644 packaging/256px.png /app/share/icons/hicolor/256x256/apps/free.toq.rainbow.png
       - install -D -m 0644 packaging/rainbow_preview_img1.png /app/share/pixmaps/rainbow_preview_img1.png
+      - install -D -m 0644 packaging/free.toq.rainbow.svg /app/share/pixmaps/free.toq.rainbow.svg
       - install -D -m 0644 _build/share/locale/en_US/LC_MESSAGES/toq-rainbow.mo /app/share/locale/en_US/LC_MESSAGES/toq-rainbow.mo
+      - install -D -m 0644 _build/share/locale/en_EN/LC_MESSAGES/toq-rainbow.mo /app/share/locale/en_EN/LC_MESSAGES/toq-rainbow.mo
 
     sources:
       - type: dir

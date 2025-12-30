@@ -5,6 +5,5 @@
 
     <file alias="icon1">icon1.svg</file>
     <file alias="icon2">icon2.svg</file>
-    <file alias="icon3">icon3.svg</file>
   </gresource>
 </gresources>

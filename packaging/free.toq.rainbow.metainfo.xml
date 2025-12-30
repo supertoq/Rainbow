@@ -1,50 +1,64 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- https://www.freedesktop.org/software/appstream/docs/chap-CatalogData.html#sect-AppStream-XML -->
+<!-- https://www.freedesktop.org/software/appstream/docs/chap-CatalogData.html -->
+
 <component type="desktop-application">
+
+  <!-- Identifikation -->
   <id>free.toq.rainbow</id>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>BSD-2-Clause</project_license>
   <name>Rainbow</name>
-  
-  <summary>Pixel-Refresher Tool</summary>
-  
-  <description>
-    <p>Small utility intended to revive frozen or 'stuck' LCD pixels..</p>
-  </description>
-  
-  <screenshots>
-    <screenshot type="default" style="dark">
-      <caption>App dark screenshot</caption>
-      <image>https://github.com/super-toq/Rainbow/blob/main/packaging/rainbow_preview_img1.png</image>
-    </screenshot>
-  </screenshots> 
-  
+  <!-- Lizenz -->
+  <project_license>BSD-2-Clause</project_license>
+  <summary>Pixel Refresher Tool for LCD Displays</summary>
   <url type="homepage">https://github.com/super-toq/Rainbow</url>
-
-  <content_rating type="oars-1.1" />
-  
-  <launchable type="desktop-id">free.toq.rainbow.desktop</launchable>
-  
-  <developer id="free.toq.rainbow">
-    <name>super-toq</name>
-  </developer>
-  
-  <provides>
-    <binary>toq-rainbow</binary>
-  </provides>
-  
-  <releases>
-    <release version="0.9.x" date="2025-11-26"/>
-     <description translate="en">
-        <ul>
-          <li>Experimental release....  </li>
-        </ul>
-      </description>
-  </releases>
-  
+  <icon type="remote" width="256" height="256">https://github.com/super-toq/Rainbow/blob/main/packaging/256px.png</icon>
+  <!-- Beschreibung -->
+  <description>
+    <p>The Pixel Refresher Tool assists in addressing stuck pixels and LCD burn-in or ghosting issues. It is intended for experienced users, as usage may cause damage to the display. Important: This tool must never be used on OLED displays.  
+   </p>
+  </description>
+  <!-- Kategorien -->
   <categories>
     <category>Utility</category>
     <category>Graphics</category>
     <category>System</category>
   </categories>
-</component>
+  <keywords>
+    <keyword>standby</keyword>
+    <keyword>pixel refresher</keyword>
+    <keyword>pixel fixer</keyword>
+  </keywords>
+  <!-- Screenshot (direkter PNG‑Link, z. B. über GitHub Pages) -->
+  <screenshots>
+      <screenshot type="default" style="light">
+        <caption>Rainbow main window</caption>
+        <image type="source">https://raw.githubusercontent.com/super-toq/Rainbow/refs/heads/main/rainbow_preview_img1.png</image>
+    </screenshot>
+  </screenshots> 
+  <!-- Releases Information  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx    -->
+<releases>
+  <release version="1.0.1" date="2025-12-30">
+    <description>
+      <p>This release includes improvements for a better user experience.</p>
+      <ul>
+        <li>For changelog information, see GitHub Releases.</li>
+      </ul>
+    </description>
+  </release>
+<!--  <release version="1.0" date=" " />
+  <release version="0.9" date=" " /> -->
+</releases>
 
+  <content_rating type="oars-1.1" />
+  
+  <launchable type="desktop-id">free.toq.rainbow.desktop</launchable>
+  <provides>
+    <binary>toq-rainbow</binary>
+  </provides>
+  <!-- Entwickler -->
+  <developer id="free.toq">
+    <name>super-toq</name>
+  </developer>
+
+</component>
