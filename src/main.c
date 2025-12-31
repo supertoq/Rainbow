@@ -1,6 +1,6 @@
-/* Rainbow is part of my learning project;
- * toq 2025  LICENSE: BSD 2-Clause "Simplified"
- *
+/* Copyright (c) 2025 super-toq
+ * 
+ * LICENSE: BSD 2-Clause "Simplified"
  *
  *
  * gcc $(pkg-config --cflags gtk4 libadwaita-1 dbus-1) -o rainbow main.c free.toq.rainbow.gresource.c $(pkg-config --libs gtk4 libadwaita-1 dbus-1)
@@ -11,7 +11,7 @@
  * Please note:
  * The Use of this code and execution of the applications is at your own risk, I accept no liability!
  * 
- * Version 1.0.0  free.toq.rainbow    (auf der Basis von Oledsaver)
+ * free.toq.rainbow basierend auf "Basis OLED-Saver" 
  */
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -22,7 +22,7 @@
 #include <locale.h>         // für setlocale(LC_ALL, "")
 #include <glib/gi18n.h>     // für _();
 
-#define APP_VERSION    "1.0.1"//_0
+#define APP_VERSION    "1.0.2"//_0
 #define APP_ID         "free.toq.rainbow"
 #define APP_NAME       "Rainbow"
 #define APP_DOMAINNAME "toq-rainbow"
@@ -77,7 +77,8 @@ static const char *colours[] = {
 
 /* ----- Funktionen zur Standby-Verhinderung ------------------------ */
 /* ----- GNOME ScreenSaver Inhibit ---------------------------------- */
-static void start_gnome_inhibit(void) {
+static void start_gnome_inhibit(void) 
+{
     DBusError err;
     DBusConnection *conn;
     DBusMessage *msg, *reply;
@@ -137,7 +138,8 @@ static void start_gnome_inhibit(void) {
 }
 
 /* ----- Stopt Gnome Inhibit ---------------------------------------- */
-static void stop_gnome_inhibit(void) {
+static void stop_gnome_inhibit(void) 
+{
     if (!gnome_cookie) return;
 
     DBusError err;
@@ -174,7 +176,8 @@ static void stop_gnome_inhibit(void) {
 }
 
 /* ----- systemd/KDE login1.Manager Inhibit ------------------------- */
-static void start_system_inhibit(void) {
+static void start_system_inhibit(void) 
+{
     DBusError err;
     DBusConnection *conn;
     DBusMessage *msg, *reply;
@@ -239,7 +242,8 @@ static void start_system_inhibit(void) {
 }
 
 /* ----- Stop System Inhibit ---------------------------------------- */
-static void stop_system_inhibit(void) {
+static void stop_system_inhibit(void) 
+{
     if (system_fd < 0) return;
     close(system_fd);
     system_fd = -1;
@@ -247,16 +251,32 @@ static void stop_system_inhibit(void) {
 }
 
 /* --- START --- ausgelöst in on_activate --------------------------- */
-static void start_standby_prevention(void) {
+static void start_standby_prevention(void) 
+{
     DesktopEnvironment de = detect_desktop();
     if (de == DESKTOP_GNOME) start_gnome_inhibit();
     start_system_inhibit(); // KDE, XFCE, MATE
 }
 
 /* --- STOP --- ausgelöst beim shutdown ----------------------------- */
-static void stop_standby_prevention(void) {
+static void stop_standby_prevention(AdwApplication *app, gpointer user_data)
+{
     stop_gnome_inhibit();
     stop_system_inhibit();
+
+    IntervalButtons *ib = (IntervalButtons *)user_data;
+
+    /* Aufräumen  --- (ib = Interval-Buttons) */
+    if (ib) {
+        /* möglichen offene Timer entfernen */
+        if (colour_timer > 0) {
+            g_source_remove(colour_timer);
+            colour_timer = 0;
+        }
+
+        g_free(ib);
+    }
+
 }
 /* ----- ENDE Standby-Verhinderung ---------------------------------- */
 
@@ -406,9 +426,9 @@ static void on_arow_button_clicked(GtkButton *btn, gpointer user_data)
 
     gtk_widget_add_css_class(GTK_WIDGET(btn), "suggested-action");
 
-    // Intervall bestimmen
-    if (GTK_WIDGET(btn)      == ib->btn_1) ib->interval_ms = 60;
-    else if (GTK_WIDGET(btn) == ib->btn_2) ib->interval_ms = 150;
+    // Intervalle bestimmen
+    if      (GTK_WIDGET(btn) == ib->btn_1) ib->interval_ms = 60;
+    else if (GTK_WIDGET(btn) == ib->btn_2) ib->interval_ms = 128;
     else if (GTK_WIDGET(btn) == ib->btn_3) ib->interval_ms = 1000;
     else if (GTK_WIDGET(btn) == ib->btn_4) ib->interval_ms = 90000;
 
@@ -428,9 +448,7 @@ static void on_arow_button_clicked(GtkButton *btn, gpointer user_data)
     if (ib->fullscreen_window && gtk_widget_is_visible(ib->fullscreen_window)) {
          /* Referenz beim Start erhöhen, damit der Timer sich selbst absichert */
          g_object_ref(ib->fullscreen_window);
-         colour_timer = g_timeout_add(ib->interval_ms,
-                             change_background_colour,
-                               ib->fullscreen_window);
+         colour_timer = g_timeout_add(ib->interval_ms, change_background_colour, ib->fullscreen_window);
     }
 }
 
@@ -505,7 +523,7 @@ static void on_activate (AdwApplication *app, gpointer)
                                          "  background-color: #434347;"
                                                     "  color: #ff8484;"
                                                                     "}"
- 
+
                                                                       );
 
     gtk_style_context_add_provider_for_display( gdk_display_get_default(),
@@ -513,77 +531,145 @@ static void on_activate (AdwApplication *app, gpointer)
     g_object_unref(provider);
 
     /* ----- Adwaita-Fenster ---------------------------------------- */
-    AdwApplicationWindow *adw_win = ADW_APPLICATION_WINDOW (adw_application_window_new (GTK_APPLICATION (app))); 
+    AdwApplicationWindow *adw_win = ADW_APPLICATION_WINDOW(adw_application_window_new(GTK_APPLICATION(app))); 
 
     /* ----- .devel-Klasse für Fensterrahmen ----- */
-    gtk_widget_add_css_class (GTK_WIDGET (adw_win), "devel");
+    //gtk_widget_add_css_class (GTK_WIDGET(adw_win), "devel");
 
-
-    gtk_window_set_title (GTK_WINDOW(adw_win), APP_NAME);         // Fenstertitel
-    gtk_window_set_default_size (GTK_WINDOW(adw_win), 360, 460);  // Standard-Fenstergröße
-    gtk_window_set_resizable (GTK_WINDOW (adw_win), FALSE);       // Skalierung nicht erlauben
+    gtk_window_set_title(GTK_WINDOW(adw_win), APP_NAME);         // Fenstertitel
+    gtk_window_set_default_size(GTK_WINDOW(adw_win), 380, 500);  // Standard-Fenstergröße
+    gtk_window_set_resizable(GTK_WINDOW(adw_win), FALSE);       // Skalierung nicht erlauben
 
     /* ----- ToolbarView (Root-Widget)  ----------------------------- */
-    AdwToolbarView *toolbar_view = ADW_TOOLBAR_VIEW (adw_toolbar_view_new ());
-    adw_application_window_set_content (adw_win, GTK_WIDGET (toolbar_view));
+    AdwToolbarView *toolbar_view = ADW_TOOLBAR_VIEW (adw_toolbar_view_new());
+    adw_application_window_set_content(adw_win, GTK_WIDGET (toolbar_view));
 
     /* ----- HeaderBar mit TitelWidget ------------------------------ */
     AdwHeaderBar *header = ADW_HEADER_BAR (adw_header_bar_new());
-    /* Label mit Pango‑Markup erzeugen */
+    /* Label mit Pango-Markup erzeugen */
     GtkLabel *title_label = GTK_LABEL(gtk_label_new (NULL));
-    gtk_label_set_markup (title_label, "<b>Rainbow</b>");               // Fenstertitel in Markup
-    gtk_label_set_use_markup (title_label, TRUE);                       // Markup‑Parsing aktivieren
-    adw_header_bar_set_title_widget (header, GTK_WIDGET (title_label)); // Label als Title‑Widget einsetzen
-    adw_toolbar_view_add_top_bar (toolbar_view, GTK_WIDGET (header));   // Header‑Bar zur Toolbar‑View hinzuf
+    gtk_label_set_markup(title_label, "<b>Rainbow</b>");               // Fenstertitel in Markup
+    gtk_label_set_use_markup(title_label, TRUE);                       // Markup‑Parsing aktivieren
+    adw_header_bar_set_title_widget(header, GTK_WIDGET(title_label)); // Label als Title‑Widget einsetzen
+    adw_toolbar_view_add_top_bar(toolbar_view, GTK_WIDGET(header));   // Header‑Bar zur Toolbar‑View hinzuf
 
     /* --- Hamburger-Button innerhalb der Headerbar ----------------- */
-    GtkMenuButton *menu_btn = GTK_MENU_BUTTON (gtk_menu_button_new ());
-    gtk_menu_button_set_icon_name (menu_btn, "open-menu-symbolic");
-    adw_header_bar_pack_start (header, GTK_WIDGET (menu_btn));
+    GtkMenuButton *menu_btn = GTK_MENU_BUTTON(gtk_menu_button_new());
+    gtk_menu_button_set_icon_name(menu_btn, "open-menu-symbolic");
+    adw_header_bar_pack_start(header, GTK_WIDGET (menu_btn));
 
     /* --- Popover-Menu im Hamburger -------------------------------- */
-    GMenu *menu = g_menu_new ();
-    g_menu_append (menu, _("Infos zu Rainbow"), "app.show-about");
-    GtkPopoverMenu *popover = GTK_POPOVER_MENU (
-        gtk_popover_menu_new_from_model (G_MENU_MODEL (menu)));
-    gtk_menu_button_set_popover (menu_btn, GTK_WIDGET (popover));
+    GMenu *menu = g_menu_new();
+    g_menu_append(menu, _("Infos zu Rainbow"), "app.show-about");
+    GtkPopoverMenu *popover = GTK_POPOVER_MENU(
+        gtk_popover_menu_new_from_model(G_MENU_MODEL(menu)));
+    gtk_menu_button_set_popover(menu_btn, GTK_WIDGET(popover));
 
     /* --- Aktion die den About‑Dialog öffnet ----------------------- */
     const GActionEntry entries[] = {
         { "show-about", show_about, NULL, NULL, NULL }
     };
-    g_action_map_add_action_entries (G_ACTION_MAP (app), entries, G_N_ELEMENTS (entries), app);
+    g_action_map_add_action_entries(G_ACTION_MAP(app), entries, G_N_ELEMENTS(entries), app);
 
     /* ---- Haupt‑Box ----------------------------------------------- */
-    GtkBox *main_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 2));
-    gtk_box_set_spacing            (GTK_BOX(main_box), -14);    // Minus-Spacer, zieht unteren Teil nach oben
-    gtk_widget_set_margin_top   (GTK_WIDGET(main_box),  15);    // Rand unterhalb Toolbar
-    gtk_widget_set_margin_bottom(GTK_WIDGET(main_box),  35);    // unterer Rand unteh. der Buttons
-    gtk_widget_set_margin_start (GTK_WIDGET(main_box),  15);    // links
-    gtk_widget_set_margin_end   (GTK_WIDGET(main_box),  15);    // rechts
-    gtk_widget_set_hexpand (GTK_WIDGET(main_box),     TRUE);
-    gtk_widget_set_vexpand (GTK_WIDGET(main_box),    FALSE);
+    GtkBox *main_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 1));
+    gtk_widget_set_margin_top   (GTK_WIDGET(main_box),    12);    // Rand unterhalb Headerbar
+    gtk_widget_set_margin_bottom(GTK_WIDGET(main_box),    12);    // unterer Rand unteh. der Buttons
+    gtk_widget_set_margin_start (GTK_WIDGET(main_box),    12);    // links
+    gtk_widget_set_margin_end   (GTK_WIDGET(main_box),    12);    // rechts
 
     /* ----- Label1 ------------------------------------------------- */
     GtkWidget *label1 = gtk_label_new(_("Der Pixel Refresher\n"));
     gtk_box_append(main_box, label1);
 
     /* ----- Icon --------------------------------------------------- */
-    GtkWidget *icon = gtk_image_new_from_resource("/free/toq/rainbow/icon1");
-    gtk_widget_set_halign(icon, GTK_ALIGN_CENTER);
-    gtk_image_set_pixel_size(GTK_IMAGE(icon), 192);
+    GtkWidget *icon = gtk_image_new_from_resource("/free/toq/rainbow/icon1"); //alias in xml !
+    gtk_widget_set_halign(icon, GTK_ALIGN_CENTER);                 // Icon horizontal zentrieren
+    gtk_image_set_pixel_size(GTK_IMAGE(icon), 174);
     gtk_box_append(main_box, icon);
 
+    /* ----- Hilfe-Button-BOX  -------------------------------------- */
+    GtkWidget *hb_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    gtk_widget_set_halign(hb_box, GTK_ALIGN_CENTER);
+
+    /* ----- Hilfe‑Button ------------------------------------------- */
+    GtkWidget *help_button = gtk_menu_button_new();
+    gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(help_button), "help-about-symbolic");
+    gtk_widget_add_css_class(help_button, "circular");
+    gtk_widget_add_css_class(help_button, "flat");
+    gtk_box_append(GTK_BOX(hb_box), help_button);
+
+    /* ---- Hilfe-Button-Popover ------------------------------------ */
+    GtkWidget *help_popover = gtk_popover_new();
+    /* Scroll-Container und Content-BOX erstellen */
+    GtkWidget *scrolled = gtk_scrolled_window_new();
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled),GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scrolled), 280);
+    GtkWidget *content_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_widget_set_size_request(content_box, 300, -1); // Breite
+    /* Popover erstellen und einsetzen */
+    GtkWidget *content_title = gtk_label_new(_("Farbintervall"));
+    gtk_widget_add_css_class(content_title, "title-4");
+    gtk_label_set_xalign(GTK_LABEL(content_title), 0.0);
+    gtk_box_append(GTK_BOX(content_box), content_title);
+    /* Hilfe-Texte */
+    GtkWidget *help_text = gtk_label_new(
+      _("• <b>60ms (≈16Hz)</b>\n"
+        "Schnelle Pixel‑Revitalisierung: \n"
+        "Kann festsitzende Pixel entladen, bei nicht zu hoher Display-Belastung. \n\n"
+        "• <b>128ms (≈7,8Hz)</b>\n"
+        "Hartnäckige Revitalisierung: \n"
+        "Gibt Kristallen mehr Zeit zur vollständige Entladung, "
+        "kann bei festsitzenden Pixeln wirksamer sein. \n\n"
+        "• <b>1sec (1Hz)</b>\n"
+        "Burn-In Prävention und leichte Ghosting-Reduktion:\n"
+        "Fast keine Belastung für das Display, geeignet für Sichtung und Diagnose. \n\n"
+        "• <b>1min (60s)</b>\n"
+        "Maximale Flüssigkristall-Entspannung, gleichmäßige Belastung: \n"
+        "Ideal für Diagnose sowie Mess- und Kalibrierprozesse.\n\n"
+        "(Alle Angaben sind ohne Gewähr!)")
+        );
+    gtk_label_set_use_markup(GTK_LABEL(help_text), TRUE); // Markup anwenden
+    gtk_label_set_wrap(GTK_LABEL(help_text), TRUE);
+    gtk_label_set_wrap_mode(GTK_LABEL(help_text), PANGO_WRAP_WORD_CHAR);
+    gtk_label_set_xalign(GTK_LABEL(help_text), 0.0);
+    gtk_label_set_max_width_chars(GTK_LABEL(help_text), 50);
+    gtk_widget_set_hexpand(help_text, TRUE); // Breite
+    gtk_box_append(GTK_BOX(content_box), help_text);
+    /* BOX Abstände */
+    gtk_widget_set_margin_top   (content_box, 12);
+    gtk_widget_set_margin_bottom(content_box, 12);
+    gtk_widget_set_margin_start (content_box, 12);
+    gtk_widget_set_margin_end   (content_box, 12);
+    /* Zusammensetzen */
+    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scrolled), content_box);
+    gtk_popover_set_child(GTK_POPOVER(help_popover), scrolled);
+    /* Popover an Button binden */
+    gtk_menu_button_set_popover(GTK_MENU_BUTTON(help_button), help_popover);
+
+    /* ----- Label2-BOX  -------------------------------------------- */
+    GtkWidget *l2_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    gtk_widget_set_halign(l2_box, GTK_ALIGN_CENTER);
+
     /* ----- Label2 ------------------------------------------------- */
-    GtkWidget *label2 = gtk_label_new(_("Farbintervall auswählen: \n"));
-    gtk_box_append(main_box, label2);
+    GtkWidget *label2 = gtk_label_new(_("Farbintervall auswählen:  "));
+    gtk_box_append(GTK_BOX(l2_box), label2);
+
+    /* ----- Hilfe-Button-BOX + Label2-BOX einfügen ----------------- */
+    gtk_box_append(GTK_BOX(main_box), hb_box);
+    gtk_box_append(GTK_BOX(main_box), l2_box);
+
+    /* ----- ListBox für die ActionRows ----------------------------- */
+    GtkListBox *actionrow_listbox = GTK_LIST_BOX(gtk_list_box_new()); // notwendig für action_row's
+    gtk_list_box_set_selection_mode(actionrow_listbox, GTK_SELECTION_NONE);
+    gtk_widget_set_margin_top(GTK_WIDGET(actionrow_listbox), 6); // Listbox 6px unterhalb von l2_box beginnen
 
     /* ----- ActionRow-4-Buttons ------------------------------------ */
     AdwActionRow *action_row1 = ADW_ACTION_ROW(adw_action_row_new());
     adw_preferences_row_set_title(ADW_PREFERENCES_ROW(action_row1), "");
 
     GtkWidget *btn_1  = gtk_button_new_with_label("60ms");
-    GtkWidget *btn_2  = gtk_button_new_with_label("150ms");
+    GtkWidget *btn_2  = gtk_button_new_with_label("128ms");
     GtkWidget *btn_3  = gtk_button_new_with_label("1sec");
     GtkWidget *btn_4  = gtk_button_new_with_label("1min");
 
@@ -605,28 +691,34 @@ static void on_activate (AdwApplication *app, gpointer)
 
     gtk_widget_add_css_class(btn_3, "suggested-action"); // Vorgabewert B
     gtk_widget_set_halign (GTK_WIDGET(action_row1), GTK_ALIGN_CENTER);
-    gtk_box_append(main_box, GTK_WIDGET(action_row1));
+
+    gtk_list_box_append(actionrow_listbox, GTK_WIDGET(action_row1));
+    gtk_box_append(GTK_BOX(main_box), GTK_WIDGET(actionrow_listbox));
+
+    /* ----- Shutdown-Handler mit den ib verbinden ------------------ */
+    g_signal_connect(app, "shutdown", G_CALLBACK(stop_standby_prevention), ib); // testen !! 30.12.25
 
     /* ----- untere Button-BOX -------------------------------------- */
-    GtkBox *button_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10));
+    GtkBox *button_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12));
     gtk_widget_set_valign (GTK_WIDGET(button_box), GTK_ALIGN_END);
     gtk_widget_set_hexpand(GTK_WIDGET(button_box), TRUE);
     gtk_widget_set_vexpand(GTK_WIDGET(button_box), TRUE);
     gtk_widget_set_halign (GTK_WIDGET(button_box), GTK_ALIGN_CENTER);
+    gtk_widget_set_margin_bottom(GTK_WIDGET(button_box), 12);
 
     /* ----- Beenden-Button ----------------------------------------- */
     GtkWidget *quit_button = gtk_button_new_with_label(_(" Beenden "));
     gtk_widget_set_halign(quit_button, GTK_ALIGN_CENTER);
     g_signal_connect(quit_button, "clicked", G_CALLBACK(on_quitbutton_clicked), adw_win);
 
-    /* ----- Fullscreen-Button -------------------------------------- */
+    /* ----- Fullscreen-Button ------------------------------------- */
     GtkWidget *setfullscreen_button = gtk_button_new_with_label(_(" Starten "));
     gtk_widget_set_halign(setfullscreen_button, GTK_ALIGN_CENTER);
     g_signal_connect(setfullscreen_button, "clicked", G_CALLBACK(on_fullscreen_button_clicked), app);
 //!!        g_object_set_data(G_OBJECT(setfullscreen_button), "set1_check", set1_check);
         g_object_set_data(G_OBJECT(setfullscreen_button), "interval_buttons", ib);
 
-    gtk_box_set_spacing(GTK_BOX(button_box), 9); 
+    gtk_box_set_spacing(GTK_BOX(button_box), 12); // Abstand zwischen den Schaltflächen
     gtk_box_append(button_box, quit_button);
     gtk_box_append(button_box, setfullscreen_button);
     gtk_box_append(main_box, GTK_WIDGET(button_box));
