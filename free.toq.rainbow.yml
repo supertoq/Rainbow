@@ -46,7 +46,7 @@ modules:
       - install -D -m 0644 packaging/free.toq.rainbow.svg /app/share/icons/hicolor/scalable/apps/free.toq.rainbow.svg
       - install -D -m 0644 packaging/128px.png /app/share/icons/hicolor/128x128/apps/free.toq.rainbow.png
       - install -D -m 0644 packaging/256px.png /app/share/icons/hicolor/256x256/apps/free.toq.rainbow.png
-      - install -D -m 0644 packaging/rainbow_preview_img1.png /app/share/pixmaps/rainbow_preview_img1.png
+      - install -D -m 0644 packaging/rainbow_preview_img2.png /app/share/pixmaps/rainbow_preview_img2.png
       - install -D -m 0644 packaging/free.toq.rainbow.svg /app/share/pixmaps/free.toq.rainbow.svg
       - install -D -m 0644 _build/share/locale/en_US/LC_MESSAGES/toq-rainbow.mo /app/share/locale/en_US/LC_MESSAGES/toq-rainbow.mo
       - install -D -m 0644 _build/share/locale/en_GB/LC_MESSAGES/toq-rainbow.mo /app/share/locale/en_GB/LC_MESSAGES/toq-rainbow.mo
