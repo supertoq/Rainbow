@@ -31,9 +31,9 @@
   </keywords>
   <!-- Screenshot (direkter PNG‑Link, z. B. über GitHub Pages) -->
   <screenshots>
-      <screenshot type="default" style="light">
+      <screenshot type="default">
         <caption>Rainbow main window</caption>
-        <image type="source">https://raw.githubusercontent.com/super-toq/Rainbow/refs/heads/main/rainbow_preview_img1.png</image>
+        <image type="source">https://raw.githubusercontent.com/super-toq/Rainbow/refs/heads/main/rainbow_preview_img2.png</image>
     </screenshot>
   </screenshots> 
   <!-- Releases Information  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx    -->
