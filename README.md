@@ -1,9 +1,9 @@
 # Rainbow
-Rainbow is a small utility based on [Basti's OLED-Saver](https://github.com/super-toq/OLED-Saver) designed to revive frozen or "stuck" LCD pixels. It repeatedly sends color signals to the screen, aiming to resolve stuck sub-pixels and reduce temporary ghosting effects.  
+Rainbow is a small utility based on the DBus functionalities of ["Basti's OLED-Saver"](https://github.com/super-toq/OLED-Saver) designed to revive frozen or "stuck" LCD pixels. It repeatedly sends color signals to the screen, aiming to resolve stuck sub-pixels and reduce temporary ghosting effects.  
   
 >[!Caution]
 > Never apply this or similar programs on OLED displays. 
-Improper use of such a program (Pixel Fixer/Refresher) can damage your display!
+Improper use of such a program (called Pixel Fixer or Pixel Refresher) can damage your display!
 
 ![rainbow](rainbow_preview_img1.png?raw=true)
 
