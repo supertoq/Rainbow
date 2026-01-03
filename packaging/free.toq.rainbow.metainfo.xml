@@ -12,7 +12,7 @@
   <project_license>BSD-2-Clause</project_license>
   <summary>Pixel Refresher Tool for LCD Displays</summary>
   <url type="homepage">https://github.com/super-toq/Rainbow</url>
-  <icon type="remote" width="256" height="256">https://github.com/super-toq/Rainbow/blob/main/packaging/256px.png</icon>
+  <icon type="remote" width="256" height="256">https://raw.githubusercontent.com/super-toq/Rainbow/refs/heads/main/packaging/256px.png</icon>
   <!-- Beschreibung -->
   <description>
     <p>The Pixel Refresher Tool assists in addressing stuck pixels and LCD burn-in or ghosting issues. It is intended for experienced users, as usage may cause damage to the display. Important: This tool must never be used on OLED displays.  
@@ -33,7 +33,7 @@
   <screenshots>
       <screenshot type="default">
         <caption>Rainbow main window</caption>
-        <image type="source">https://raw.githubusercontent.com/super-toq/Rainbow/refs/heads/main/rainbow_preview_img2.png</image>
+        <image type="source">https://raw.githubusercontent.com/super-toq/Rainbow/refs/heads/main/packaging/rainbow_preview_img2.png</image>
     </screenshot>
   </screenshots> 
   <!-- Releases Information  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx    -->
@@ -46,8 +46,7 @@
       </ul>
     </description>
   </release>
-<!--  <release version="1.0" date=" " />
-  <release version="0.9" date=" " /> -->
+<!--  <release version="1.0" date=" " /> -->
 </releases>
 
   <content_rating type="oars-1.1" />
