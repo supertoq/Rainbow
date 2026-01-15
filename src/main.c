@@ -1,40 +1,36 @@
-/* Copyright (c) 2025 super-toq
- * 
+/* Copyright (c) 2025 - 2026 super-toq
  * LICENSE: BSD 2-Clause "Simplified"
- *
+ * 
  *
  * gcc $(pkg-config --cflags gtk4 libadwaita-1 dbus-1) -o rainbow main.c free.toq.rainbow.gresource.c $(pkg-config --libs gtk4 libadwaita-1 dbus-1)
  *
- *
- *
- *
  * Please note:
+ * DON'T USE ON OLED DISPLAY !
  * The Use of this code and execution of the applications is at your own risk, I accept no liability!
  * 
- * free.toq.rainbow basierend auf "Basis OLED-Saver" 
+ * free.toq.rainbow basierend auf "Basis OLED-Saver 1.1.3" nur mit bunten Farben ;-) 
  */
+#define APP_VERSION    "1.0.3"//_1
+#define APP_ID         "free.toq.rainbow"
+#define APP_NAME       "Rainbow"
+#define APP_DOMAINNAME "toq-rainbow"
+/* Fenstergröße Breite, Höche ( 370, 410) */
+#define WIN_WIDTH      370
+#define WIN_HEIGHT     410
+
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <adwaita.h>
 #include "icon-gresource.h" // binäre Icons
 #include <string.h>         // für strstr()
-#include <dbus/dbus.h>      // für DBusConnection,DBusMessage,dbus_bus_get(),dbus_message_new_method_call;
+#include <unistd.h>         // POSIX-Header
 #include <locale.h>         // für setlocale(LC_ALL, "")
 #include <glib/gi18n.h>     // für _();
 
-#define APP_VERSION    "1.0.2"//_0
-#define APP_ID         "free.toq.rainbow"
-#define APP_NAME       "Rainbow"
-#define APP_DOMAINNAME "toq-rainbow"
+#include "time_stamp.h"     // Zeitstempel
+#include "stby_prev.h"      // Standby Verhinderung
 
-/* ----- Umgebung identifizieren ------------------------------------ */
-typedef enum {
-    DESKTOP_UNKNOWN,
-    DESKTOP_GNOME,
-    DESKTOP_KDE,
-    DESKTOP_XFCE,
-    DESKTOP_MATE
-} DesktopEnvironment;
+/* ----- Globale Strukturen ------------------------------------ */
 typedef struct {
     GtkWidget *btn_1;
     GtkWidget *btn_2;
@@ -44,243 +40,74 @@ typedef struct {
     GtkWidget *fullscreen_window;
 } IntervalButtons;
 
-static DesktopEnvironment detect_desktop(void) {
-    const char *desktop = g_getenv("XDG_CURRENT_DESKTOP");
-    if (!desktop) desktop = g_getenv("DESKTOP_SESSION");
-    if (!desktop) return DESKTOP_UNKNOWN;
-    g_autofree gchar *upper = g_ascii_strup(desktop, -1);
-    if (strstr(upper, "GNOME")) return DESKTOP_GNOME;
-    if (strstr(upper, "KDE"))   return DESKTOP_KDE;
-    if (strstr(upper, "XFCE"))  return DESKTOP_XFCE;
-    if (strstr(upper, "MATE"))  return DESKTOP_MATE;
-    return DESKTOP_UNKNOWN;
-}
+typedef struct {
+    AdwToastOverlay          *toast_overlay;      // Pointer auf die AdwToastOverlay
+} ToastManager;
+static ToastManager toast_manager = { NULL };
 
-/* --- Globale Variablen für Inhibit:   */
-/* GNOME-Inhibit uint32-Cookie, geliefert von org.freedesktop.ScreenSaver.Inhibit; */
-static uint32_t gnome_cookie = 0;
-/* systemd/KDE-Inhibit (fd = File Descriptor/Verbindung zu einem Systemdienst) 
-   geliefert von org.freedesktop.login1.Manager.Inhibit; */
-static int system_fd = -1;         
-
-/* ----- Farben,Index, Farbtimer definieren ----- */
+/* ----- Farben,Index im Array definieren ----- */
 static guint colour_timer = 0;
 static int current_colour_index = 0;
 static const char *colours[] = {
-                  "#000000",
+                  "#000000",      // schwarz
                   "#FF0000",      // rot
                   "#00FF00",      // grün 
                   "#0000FF",      // blau 
                   "#FFFF00",      // gelb
-                  "#FFFFFF"
+                  "#FFFFFF"       // weiß
 };
 
-/* ----- Funktionen zur Standby-Verhinderung ------------------------ */
-/* ----- GNOME ScreenSaver Inhibit ---------------------------------- */
-static void start_gnome_inhibit(void) 
+/* ----- Toast Mitteilungen ------------------------------------------ */
+static void show_toast(const char *msg)
 {
-    DBusError err;
-    DBusConnection *conn;
-    DBusMessage *msg, *reply;
-    DBusMessageIter args;
-
-    dbus_error_init(&err);
-    /* Session-Bus */
-    conn = dbus_bus_get(DBUS_BUS_SESSION, &err);
-    if (!conn || dbus_error_is_set(&err)) {
-        g_warning("[GNOME] DBus error: %s\n", err.message); dbus_error_free(&err);
-        return; 
-    }
-
-    /* DBus-Auffruf vorbereiten */
-    msg = dbus_message_new_method_call(
-        "org.freedesktop.ScreenSaver",
-        "/ScreenSaver",
-        "org.freedesktop.ScreenSaver",
-        "Inhibit"
-    );
-    
-    if (!msg) {
-        g_warning("[GNOME] Error creating the DBus message (1)\n");
-        return; 
-    }
-
-    const char *app = APP_NAME;
-    const char *reason = "Prevent Standby";
-    dbus_message_iter_init_append(msg, &args);
-    dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &app);
-    dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &reason);
-
-    /* Nachricht senden */
-    reply = dbus_connection_send_with_reply_and_block(conn, msg, -1, &err);
-
-    /* Antwort auslesen (COOKIE als uint32) */
-    DBusMessageIter iter;
-    if (!reply) {
-        g_warning("[GNOME] Inhibit failed: no reply received\n");
-        dbus_message_unref(msg);
+    if (!toast_manager.toast_overlay) // toast_manager siehe Strukt.
         return;
-    }
 
-    if (!dbus_message_iter_init(reply, &iter) ||
-        dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
-        g_warning("[GNOME] Inhibit reply invalid (no cookie)\n");
-        dbus_message_unref(msg);
-        dbus_message_unref(reply);
-        return;
-    }
-
-    dbus_message_iter_get_basic(&iter, &gnome_cookie);
-    g_print("[GNOME] Inhibit active (cookie=%u)\n", gnome_cookie);
-
-    dbus_message_unref(msg);
-    dbus_message_unref(reply);
+    AdwToast *toast = adw_toast_new(msg);
+    adw_toast_set_timeout(toast, 2); // Sekunden
+    adw_toast_set_priority(toast, ADW_TOAST_PRIORITY_HIGH);
+    adw_toast_overlay_add_toast(toast_manager.toast_overlay, toast);
 }
 
-/* ----- Stopt Gnome Inhibit ---------------------------------------- */
-static void stop_gnome_inhibit(void) 
-{
-    if (!gnome_cookie) return;
+/* ----- Funktionen der Standby-Verhinderung ------------------------- */
+// Ausgelagert!
+// detect_desktop();
+// start_gnome_inhibit();
+// start_system_inhibit();
+// stop_gnome_inhibit(error);
+// stop_system_inhibit(error);
 
-    DBusError err;
-    DBusConnection *conn;
-    DBusMessage *msg;
-    DBusMessageIter args;
+/* --- START-Wrapper --- ausgelöst in on_activate ------------------- */
+static void start_standby_prevention(void)
+{  // Noch umbauen mit Rückmeldung bei Erfolg, wie STOP !!
 
-    dbus_error_init(&err);
-
-    conn = dbus_bus_get(DBUS_BUS_SESSION, &err);
-    if (!conn || dbus_error_is_set(&err)) {
-       g_warning("[GNOME] DBus error (session): %s\n", err.message);
-       dbus_error_free(&err); return; }
-
-    msg = dbus_message_new_method_call(
-        "org.freedesktop.ScreenSaver",
-        "/ScreenSaver",
-        "org.freedesktop.ScreenSaver",
-        "UnInhibit"
-    );
-
-    if (!msg) {
-        g_warning("[GNOME] Error creating the DBus message (2)\n");
-        return;
-    }
-
-    dbus_message_iter_init_append(msg, &args);
-    dbus_message_iter_append_basic(&args, DBUS_TYPE_UINT32, &gnome_cookie);
-
-    dbus_connection_send(conn, msg, NULL);
-    dbus_message_unref(msg);
-    g_print("[GNOME] Inhibit closed (cookie=%u)\n", gnome_cookie);
-    gnome_cookie = 0;
-}
-
-/* ----- systemd/KDE login1.Manager Inhibit ------------------------- */
-static void start_system_inhibit(void) 
-{
-    DBusError err;
-    DBusConnection *conn;
-    DBusMessage *msg, *reply;
-    DBusMessageIter args;
-
-    /* Fehlerbehandlung initialisieren */
-    dbus_error_init(&err);
-
-    /* Verbindung zum Systembus herstellen */
-    conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
-    if (!conn || dbus_error_is_set(&err)) {
-       g_warning("System DBus error: %s\n", err.message);
-       dbus_error_free(&err); return; 
-    }
-
-    /* Methodenaufruf vorbereiten */
-    msg = dbus_message_new_method_call(
-        "org.freedesktop.login1",
-        "/org/freedesktop/login1",
-        "org.freedesktop.login1.Manager",
-        "Inhibit");
-
-    if (!msg) {
-       g_warning("[SYSTEM] Error creating the DBus message\n");
-       return;
-    }
-
-    /* Argumente für Inhibit vorbereiten */
-    const char *what = "sleep:idle:shutdown:handle-lid-switch:handle-suspend-key";
-    const char *who  = "Rainbow";
-    const char *why  = "Prevent Standby";
-    const char *mode = "block";
-
-    dbus_message_iter_init_append(msg, &args);
-    dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &what);
-    dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &who);
-    dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &why);
-    dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &mode);
-
-     /* Methode senden und Antwort empfangen */
-    reply = dbus_connection_send_with_reply_and_block(conn, msg, -1, &err);
-    if (!reply || dbus_error_is_set(&err)) {
-       g_warning("[SYSTEM] Inhibit failed: %s\n", err.message);
-       dbus_error_free(&err); dbus_message_unref(msg);
-       return; 
-    }
-
-    DBusMessageIter iter;
-    if (!dbus_message_iter_init(reply, &iter) ||
-        dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UNIX_FD) {
-        g_warning("[SYSTEM] Inhibit reply invalid\n");
-        dbus_message_unref(msg);
-        dbus_message_unref(reply);
-        return;
-    }
-
-    dbus_message_iter_get_basic(&iter, &system_fd);
-    g_print("[SYSTEM] Inhibit active, fd=%d\n", system_fd);
-    /* Aufräumen */
-    dbus_message_unref(msg);
-    dbus_message_unref(reply);
-}
-
-/* ----- Stop System Inhibit ---------------------------------------- */
-static void stop_system_inhibit(void) 
-{
-    if (system_fd < 0) return;
-    close(system_fd);
-    system_fd = -1;
-    g_print("[System] Preventing standby has been stopped\n");
-}
-
-/* --- START --- ausgelöst in on_activate --------------------------- */
-static void start_standby_prevention(void) 
-{
+    /* Entsprechende Funktion zur Umgebung starten: */
     DesktopEnvironment de = detect_desktop();
     if (de == DESKTOP_GNOME) start_gnome_inhibit();
+//    else
     start_system_inhibit(); // KDE, XFCE, MATE
+
+    /* Toast-Message ausgeben: */
+    show_toast(_("Standby wird nun verhindert!"));
 }
 
-/* --- STOP --- ausgelöst beim shutdown ----------------------------- */
-static void stop_standby_prevention(AdwApplication *app, gpointer user_data)
+/* --- STOP --- ausgelöst beim shutdown ---------------------------- */
+static void stop_standby_prevention(GApplication *app, gpointer user_data)
 {
-    stop_gnome_inhibit();
-    stop_system_inhibit();
 
-    IntervalButtons *ib = (IntervalButtons *)user_data;
+    g_print("Stopping standby prevention\n"); 
 
-    /* Aufräumen  --- (ib = Interval-Buttons) */
-    if (ib) {
-        /* möglichen offene Timer entfernen */
-        if (colour_timer > 0) {
-            g_source_remove(colour_timer);
-            colour_timer = 0;
-        }
+    /* Standby-Inhibits beenden */
+    stop_gnome_inhibit(NULL);
+    stop_system_inhibit(NULL);
 
-        g_free(ib);
+    /* Farb-Timer stoppen */
+    if (colour_timer > 0) {
+        g_source_remove(colour_timer);
+        colour_timer = 0;
     }
 
 }
-/* ----- ENDE Standby-Verhinderung ---------------------------------- */
-
-
 
 /* ----- Callback: About-Dialog öffnen ------------------------------ */
 static void show_about (GSimpleAction *action, GVariant *parameter, gpointer user_data)
@@ -500,6 +327,10 @@ static void on_fullscreen_button_clicked(GtkButton *button, gpointer user_data)
 /* ----- Callback Beenden-Button ------------------------------------ */
 static void on_quitbutton_clicked (GtkButton *button, gpointer user_data)
 {
+    IntervalButtons *ib = user_data;
+    // Debug:
+    g_print("[DEBUG] ib memory address=%p\n", ib);
+
     //g_print("Received instruction to terminate...\n"); testen
     GtkWindow *win = GTK_WINDOW(user_data); 
     gtk_window_destroy(win);
@@ -537,12 +368,14 @@ static void on_activate (AdwApplication *app, gpointer)
     //gtk_widget_add_css_class (GTK_WIDGET(adw_win), "devel");
 
     gtk_window_set_title(GTK_WINDOW(adw_win), APP_NAME);         // Fenstertitel
-    gtk_window_set_default_size(GTK_WINDOW(adw_win), 380, 500);  // Standard-Fenstergröße
+    gtk_window_set_default_size(GTK_WINDOW(adw_win), WIN_WIDTH, WIN_HEIGHT);
     gtk_window_set_resizable(GTK_WINDOW(adw_win), FALSE);       // Skalierung nicht erlauben
 
-    /* ----- ToolbarView (Root-Widget)  ----------------------------- */
+    /* --- NavigationView -------------------------------------------- */
+    AdwNavigationView *nav_view = ADW_NAVIGATION_VIEW(adw_navigation_view_new());
+
+    /* ----- ToolbarView --------------------------------------------- */
     AdwToolbarView *toolbar_view = ADW_TOOLBAR_VIEW (adw_toolbar_view_new());
-    adw_application_window_set_content(adw_win, GTK_WIDGET (toolbar_view));
 
     /* ----- HeaderBar mit TitelWidget ------------------------------ */
     AdwHeaderBar *header = ADW_HEADER_BAR (adw_header_bar_new());
@@ -550,28 +383,40 @@ static void on_activate (AdwApplication *app, gpointer)
     GtkLabel *title_label = GTK_LABEL(gtk_label_new (NULL));
     gtk_label_set_markup(title_label, "<b>Rainbow</b>");               // Fenstertitel in Markup
     gtk_label_set_use_markup(title_label, TRUE);                       // Markup‑Parsing aktivieren
-    adw_header_bar_set_title_widget(header, GTK_WIDGET(title_label)); // Label als Title‑Widget einsetzen
-    adw_toolbar_view_add_top_bar(toolbar_view, GTK_WIDGET(header));   // Header‑Bar zur Toolbar‑View hinzuf
+    adw_header_bar_set_title_widget(header, GTK_WIDGET(title_label)); // Label als Title-Widget einsetzen
+    adw_toolbar_view_add_top_bar(toolbar_view, GTK_WIDGET(header));   // HeaderBar zur ToolbarView hinzuf
+
+    /* --- Hauptseite in NavigationView ------------------------------ */
+    AdwNavigationPage *main_page = adw_navigation_page_new(GTK_WIDGET(toolbar_view), APP_NAME);
+    adw_navigation_view_push(nav_view, main_page);                         // NavView als MainPage
+
+    /* ----- ToastOverlay -------------------------------------------- */
+    //toast_overlay = ADW_TOAST_OVERLAY(adw_toast_overlay_new());
+    //adw_toast_overlay_set_child(toast_overlay, GTK_WIDGET(nav_view));
+    toast_manager.toast_overlay = ADW_TOAST_OVERLAY(adw_toast_overlay_new()); // ToastOverlay in Strukt.
+    adw_toast_overlay_set_child(toast_manager.toast_overlay, GTK_WIDGET(nav_view));
+    /* ----- ToastOverlay in das Fenster einfügen  ------------------- */
+    adw_application_window_set_content(adw_win, GTK_WIDGET(toast_manager.toast_overlay)); // ToastOverl. in AdwWin / Strukt.
 
     /* --- Hamburger-Button innerhalb der Headerbar ----------------- */
     GtkMenuButton *menu_btn = GTK_MENU_BUTTON(gtk_menu_button_new());
     gtk_menu_button_set_icon_name(menu_btn, "open-menu-symbolic");
-    adw_header_bar_pack_start(header, GTK_WIDGET (menu_btn));
+    adw_header_bar_pack_start(header, GTK_WIDGET (menu_btn)); // Link in Headerbar
 
     /* --- Popover-Menu im Hamburger -------------------------------- */
     GMenu *menu = g_menu_new();
     g_menu_append(menu, _("Infos zu Rainbow"), "app.show-about");
-    GtkPopoverMenu *popover = GTK_POPOVER_MENU(
-        gtk_popover_menu_new_from_model(G_MENU_MODEL(menu)));
-    gtk_menu_button_set_popover(menu_btn, GTK_WIDGET(popover));
+    GtkPopoverMenu *menu_popover = GTK_POPOVER_MENU(
+               gtk_popover_menu_new_from_model(G_MENU_MODEL(menu)));
+    gtk_menu_button_set_popover(menu_btn, GTK_WIDGET(menu_popover));
 
     /* --- Aktion die den About‑Dialog öffnet ----------------------- */
-    const GActionEntry entries[] = {
-        { "show-about", show_about, NULL, NULL, NULL }
-    };
+    const GActionEntry entries[] = { { "show-about", show_about, NULL, NULL, NULL } };
+
+    /* Registrierung der im Array about_entry definierten Aktionen */ 
     g_action_map_add_action_entries(G_ACTION_MAP(app), entries, G_N_ELEMENTS(entries), app);
 
-    /* ---- Haupt‑Box ----------------------------------------------- */
+    /* ---- Haupt-Box ----------------------------------------------- */
     GtkBox *main_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 1));
     gtk_widget_set_margin_top   (GTK_WIDGET(main_box),    12);    // Rand unterhalb Headerbar
     gtk_widget_set_margin_bottom(GTK_WIDGET(main_box),    12);    // unterer Rand unteh. der Buttons
@@ -580,6 +425,8 @@ static void on_activate (AdwApplication *app, gpointer)
 
     /* ----- Label1 ------------------------------------------------- */
     GtkWidget *label1 = gtk_label_new(_("Der Pixel Refresher\n"));
+    gtk_widget_set_halign(label1, GTK_ALIGN_CENTER);
+    gtk_widget_set_valign(label1, GTK_ALIGN_CENTER);
     gtk_box_append(main_box, label1);
 
     /* ----- Icon --------------------------------------------------- */
@@ -592,7 +439,7 @@ static void on_activate (AdwApplication *app, gpointer)
     GtkWidget *hb_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
     gtk_widget_set_halign(hb_box, GTK_ALIGN_CENTER);
 
-    /* ----- Hilfe‑Button ------------------------------------------- */
+    /* ----- Hilfe-Button ------------------------------------------- */
     GtkWidget *help_button = gtk_menu_button_new();
     gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(help_button), "help-about-symbolic");
     gtk_widget_add_css_class(help_button, "circular");
@@ -636,7 +483,7 @@ static void on_activate (AdwApplication *app, gpointer)
     gtk_label_set_max_width_chars(GTK_LABEL(help_text), 50);
     gtk_widget_set_hexpand(help_text, TRUE); // Breite
     gtk_box_append(GTK_BOX(content_box), help_text);
-    /* BOX Abstände */
+    /* Content-BOX Abstände */
     gtk_widget_set_margin_top   (content_box, 12);
     gtk_widget_set_margin_bottom(content_box, 12);
     gtk_widget_set_margin_start (content_box, 12);
@@ -654,9 +501,6 @@ static void on_activate (AdwApplication *app, gpointer)
     /* ----- Label2 ------------------------------------------------- */
     GtkWidget *label2 = gtk_label_new(_("Farbintervall auswählen:  "));
     gtk_box_append(GTK_BOX(l2_box), label2);
-
-    /* ----- Hilfe-Button-BOX + Label2-BOX einfügen ----------------- */
-    gtk_box_append(GTK_BOX(main_box), hb_box);
     gtk_box_append(GTK_BOX(main_box), l2_box);
 
     /* ----- ListBox für die ActionRows ----------------------------- */
@@ -695,6 +539,9 @@ static void on_activate (AdwApplication *app, gpointer)
     gtk_list_box_append(actionrow_listbox, GTK_WIDGET(action_row1));
     gtk_box_append(GTK_BOX(main_box), GTK_WIDGET(actionrow_listbox));
 
+    /* ----- Hilfe-Button-BOX + Label2-BOX einfügen ----------------- */
+    gtk_box_append(GTK_BOX(main_box), hb_box);
+
     /* ----- Shutdown-Handler mit den ib verbinden ------------------ */
     g_signal_connect(app, "shutdown", G_CALLBACK(stop_standby_prevention), ib); // testen !! 30.12.25
 
@@ -706,17 +553,19 @@ static void on_activate (AdwApplication *app, gpointer)
     gtk_widget_set_halign (GTK_WIDGET(button_box), GTK_ALIGN_CENTER);
     gtk_widget_set_margin_bottom(GTK_WIDGET(button_box), 12);
 
-    /* ----- Beenden-Button ----------------------------------------- */
-    GtkWidget *quit_button = gtk_button_new_with_label(_(" Beenden "));
-    gtk_widget_set_halign(quit_button, GTK_ALIGN_CENTER);
-    g_signal_connect(quit_button, "clicked", G_CALLBACK(on_quitbutton_clicked), adw_win);
-
     /* ----- Fullscreen-Button ------------------------------------- */
     GtkWidget *setfullscreen_button = gtk_button_new_with_label(_(" Starten "));
     gtk_widget_set_halign(setfullscreen_button, GTK_ALIGN_CENTER);
+    gtk_widget_set_size_request(setfullscreen_button, 140, 48); // Button Größe
     g_signal_connect(setfullscreen_button, "clicked", G_CALLBACK(on_fullscreen_button_clicked), app);
-//!!        g_object_set_data(G_OBJECT(setfullscreen_button), "set1_check", set1_check);
-        g_object_set_data(G_OBJECT(setfullscreen_button), "interval_buttons", ib);
+//!!  g_object_set_data(G_OBJECT(setfullscreen_button), "set1_check", set1_check);
+    g_object_set_data(G_OBJECT(setfullscreen_button), "interval_buttons", ib);
+
+    /* ----- Beenden-Button ----------------------------------------- */
+    GtkWidget *quit_button = gtk_button_new_with_label(_(" Beenden "));
+    gtk_widget_set_halign(quit_button, GTK_ALIGN_CENTER);
+    gtk_widget_set_size_request(quit_button, 140, 48); // Button Größe
+    g_signal_connect(quit_button, "clicked", G_CALLBACK(on_quitbutton_clicked), adw_win);
 
     gtk_box_set_spacing(GTK_BOX(button_box), 12); // Abstand zwischen den Schaltflächen
     gtk_box_append(button_box, quit_button);
@@ -762,7 +611,6 @@ int main (int argc, char **argv)
                         adw_application_new(APP_ID, G_APPLICATION_DEFAULT_FLAGS);
 
     g_signal_connect(app, "activate", G_CALLBACK(on_activate),             NULL);
-    g_signal_connect(app, "shutdown", G_CALLBACK(stop_standby_prevention), NULL);
-    /* --- g_application_run startet Anwendung u. wartet auf Ereignis --- */
+    /* --- Anwendung starten u. auf Ereignis wartet --- */
     return g_application_run(G_APPLICATION (app), argc, argv);
 }
