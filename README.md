@@ -1,4 +1,3 @@
-<div align="center">
 <img src="packaging/free.toq.rainbow.svg" height="128">
 
 # Rainbow
