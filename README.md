@@ -1,3 +1,6 @@
+<div align="center">
+<img src="packaging/free.toq.rainbow.svg" height="64">
+
 # Rainbow
 Rainbow is a small utility based on the DBus functionalities of ["Basti's OLED-Saver"](https://github.com/super-toq/OLED-Saver) designed to revive frozen or "stuck" LCD pixels. It repeatedly sends color signals to the screen, aiming to resolve stuck sub-pixels and reduce temporary ghosting effects.  
   
