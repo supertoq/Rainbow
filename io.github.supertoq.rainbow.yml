@@ -1,0 +1,56 @@
+id: io.github.supertoq.rainbow
+runtime: org.gnome.Platform
+runtime-version: "49"
+sdk: org.gnome.Sdk
+command: supertoq-rainbow
+
+finish-args:
+  - --share=ipc                                           # DBus-Kommunikation oder IPC intern
+  - --socket=fallback-x11                                 # X11-Fallback
+  - --socket=wayland                                      # Wayland...
+  - --socket=session-bus                                  # Session-Bus für KDE & Flatpak-GNOME
+  - --socket=system-bus                                   # für systemd-Inhibit 
+  - --device=dri                                          # GPU...
+  - --talk-name=org.freedesktop.login1                    # systemd-Inhibit
+  - --talk-name=org.freedesktop.ScreenSaver               # anscheinend nicht in Flatpak zulässig!
+#  - --talk-name=org.kde.Solid.PowerManagement.PolicyAgent # KDE Inhibit
+#  - --filesystem=home                                     # Zugriff auf USER-Daten
+#  - --env=LC_ALL=C.UTF-8                                  # Lokalisierung
+#  - --own-name=org.freedesktop.ScreenSaver                # notwendig für DBus-Objekt unter diesem Namen
+#  - --own-name=io.github.supertoq.rainbow                 # für App-DBus-Name
+
+modules:
+  - name: supertoq-rainbow
+    buildsystem: simple
+    build-commands:
+      # ----- Erstelle Verzeichnis‑Struktur -----
+      - mkdir -p _build/bin _build/share/locale/en_US/LC_MESSAGES _build/share/locale/en_GB/LC_MESSAGES _build/share/applications _build/share/icons/hicolor/scalable/apps _build/share/icons/hicolor/128x128/apps _build/share/icons/hicolor/256x256/apps _build//share/pixmaps
+
+      # ----- Resourcesn kompilieren -----
+      - glib-compile-resources src/resources.xml --sourcedir=data/icons/ --generate-source --target=src/io.github.supertoq.rainbow.gresource.c 
+
+      # ----- Kompilieren der Anwendung -----
+      - gcc $(pkg-config --cflags gtk4 libadwaita-1 dbus-1) -o _build/bin/supertoq-rainbow src/main.c src/time_stamp.c src/stby_prev.c src/io.github.supertoq.rainbow.gresource.c $(pkg-config --libs gtk4 libadwaita-1 dbus-1)
+
+      # ----- Warunungen unterdrücken -----
+      
+
+      # ----- Erstellen der .po‑Datei -----
+      - msgfmt src/po/en_US.po --output-file=_build/share/locale/en_US/LC_MESSAGES/supertoq-rainbow.mo
+      - msgfmt src/po/en_GB.po --output-file=_build/share/locale/en_GB/LC_MESSAGES/supertoq-rainbow.mo
+
+      # ----- Installation
+      - install -D -m 0755 _build/bin/supertoq-rainbow /app/bin/supertoq-rainbow
+      - install -D -m 0644 packaging/io.github.supertoq.rainbow.desktop /app/share/applications/io.github.supertoq.rainbow.desktop
+      - install -D -m 0644 packaging/io.github.supertoq.rainbow.metainfo.xml /app/share/metainfo/io.github.supertoq.rainbow.metainfo.xml
+      - install -D -m 0644 packaging/io.github.supertoq.rainbow.svg /app/share/icons/hicolor/scalable/apps/io.github.supertoq.rainbow.svg
+      - install -D -m 0644 packaging/128px.png /app/share/icons/hicolor/128x128/apps/io.github.supertoq.rainbow.png
+      - install -D -m 0644 packaging/256px.png /app/share/icons/hicolor/256x256/apps/io.github.supertoq.rainbow.png
+      - install -D -m 0644 packaging/rainbow_preview_img_light1.png /app/share/pixmaps/rainbow_preview_img_light1.png
+      - install -D -m 0644 packaging/io.github.supertoq.rainbow.svg /app/share/pixmaps/io.github.supertoq.rainbow.svg
+      - install -D -m 0644 _build/share/locale/en_US/LC_MESSAGES/supertoq-rainbow.mo /app/share/locale/en_US/LC_MESSAGES/supertoq-rainbow.mo
+      - install -D -m 0644 _build/share/locale/en_GB/LC_MESSAGES/supertoq-rainbow.mo /app/share/locale/en_GB/LC_MESSAGES/supertoq-rainbow.mo
+
+    sources:
+      - type: dir
+        path: .

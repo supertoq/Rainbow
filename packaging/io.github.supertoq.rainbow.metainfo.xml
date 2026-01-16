@@ -2,17 +2,17 @@
 <!-- https://www.freedesktop.org/software/appstream/docs/chap-CatalogData.html#sect-AppStream-XML -->
 <!-- https://www.freedesktop.org/software/appstream/docs/chap-CatalogData.html -->
 
-<component type="desktop-application">
+<component type="desktop">
 
   <!-- Identifikation -->
-  <id>free.toq.rainbow</id>
+  <id>io.github.supertoq.rainbow</id>
   <metadata_license>CC0-1.0</metadata_license>
   <name>Rainbow</name>
   <!-- Lizenz -->
   <project_license>BSD-2-Clause</project_license>
   <summary>Pixel Refresher Tool for LCD Displays</summary>
-  <url type="homepage">https://github.com/super-toq/Rainbow</url>
-  <icon type="remote" width="256" height="256">https://raw.githubusercontent.com/super-toq/Rainbow/refs/heads/main/packaging/256px.png</icon>
+  <url type="homepage">https://github.com/supertoq/Rainbow</url>
+  <icon type="remote" width="256" height="256">https://raw.githubusercontent.com/supertoq/Rainbow/refs/heads/main/packaging/256px.png</icon>
   <!-- Beschreibung -->
   <description>
     <p>The Pixel Refresher Tool assists in addressing stuck pixels and LCD burn-in or ghosting issues. It is intended for experienced users, as usage may cause damage to the display. Important: This tool must never be used on OLED displays.  
@@ -33,12 +33,12 @@
   <screenshots>
       <screenshot type="default">
         <caption>Rainbow main window</caption>
-        <image type="source">https://raw.githubusercontent.com/super-toq/Rainbow/refs/heads/main/packaging/rainbow_preview_img_light1.png</image>
+        <image type="source">https://raw.githubusercontent.com/supertoq/Rainbow/refs/heads/main/packaging/rainbow_preview_img_light1.png</image>
     </screenshot>
   </screenshots> 
   <!-- Releases Information  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx    -->
 <releases>
-  <release version="1.0.3" date="2026-01-15">
+  <release version="1.0.4" date="2026-01-16">
     <description>
       <p>This release includes improvements for a better user experience.</p>
       <ul>
@@ -51,13 +51,13 @@
 
   <content_rating type="oars-1.1" />
   
-  <launchable type="desktop-id">free.toq.rainbow.desktop</launchable>
+  <launchable type="desktop-id">io.github.supertoq.rainbow.desktop</launchable>
   <provides>
-    <binary>toq-rainbow</binary>
+    <binary>supertoq-rainbow</binary>
   </provides>
   <!-- Entwickler -->
-  <developer id="free.toq">
-    <name>super-toq</name>
+  <developer id="io.github.supertoq">
+    <name>supertoq</name>
   </developer>
 
 </component>

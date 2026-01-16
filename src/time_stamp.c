@@ -1,4 +1,4 @@
-/* 2025 - 2026 super-toq
+/* 2025 - 2026 supertoq
  * LICENSE: BSD 2-Clause "Simplified"
  *
  * time_stamp.c

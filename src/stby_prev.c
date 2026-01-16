@@ -1,4 +1,4 @@
-/* 2025 - 2026 super-toq
+/* 2025 - 2026 supertoq
  * LICENSE: BSD 2-Clause "Simplified"
  *
  * detect_desktop();
@@ -11,8 +11,8 @@
  * stby_prev.c
  * Version 2.1 2026-01-14
  */
-#define APP_ID         "free.basti.oledsaver"
-#define APP_NAME       "OLED Saver"
+#define APP_ID         "io.github.supertoq.rainbow"
+#define APP_NAME       "supertoq-rainbow"
 
 #include <dbus/dbus.h>            // für DBusConnection,DBusMessage (dbus_* , sqrt )
 #include <stdint.h>               // Ganzzahl-Typen
@@ -166,7 +166,7 @@ void start_system_inhibit(void)
     }
 
     const char *what = "sleep:idle:shutdown:handle-lid-switch:handle-suspend-key";
-    const char *who  = "OLED Saver";
+    const char *who  = "Rainbow";
     const char *why  = "Prevent Standby";
     const char *mode = "block";
 

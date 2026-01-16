@@ -1,19 +1,19 @@
-/* Copyright (c) 2025 - 2026 super-toq
+/* Copyright (c) 2025 - 2026 supertoq
  * LICENSE: BSD 2-Clause "Simplified"
  * 
  *
- * gcc $(pkg-config --cflags gtk4 libadwaita-1 dbus-1) -o rainbow main.c free.toq.rainbow.gresource.c $(pkg-config --libs gtk4 libadwaita-1 dbus-1)
+ * gcc $(pkg-config --cflags gtk4 libadwaita-1 dbus-1) -o rainbow main.c io.github.supertoq.gresource.c $(pkg-config --libs gtk4 libadwaita-1 dbus-1)
  *
  * Please note:
  * DON'T USE ON OLED DISPLAY !
  * The Use of this code and execution of the applications is at your own risk, I accept no liability!
  * 
- * free.toq.rainbow basierend auf "Basis OLED-Saver 1.1.3" nur mit bunten Farben ;-) 
+ * io.github.supertoq.rainbow basierend auf "Basis OLED-Saver 1.1.3" nur mit bunten Farben ;-) 
  */
-#define APP_VERSION    "1.0.3"//_1
-#define APP_ID         "free.toq.rainbow"
+#define APP_VERSION    "1.0.4"//_0
+#define APP_ID         "io.github.supertoq.rainbow"
 #define APP_NAME       "Rainbow"
-#define APP_DOMAINNAME "toq-rainbow"
+#define APP_DOMAINNAME "supertoq-rainbow"
 /* Fenstergröße Breite, Höche ( 370, 410) */
 #define WIN_WIDTH      370
 #define WIN_HEIGHT     410
@@ -117,8 +117,8 @@ static void show_about (GSimpleAction *action, GVariant *parameter, gpointer use
     AdwAboutDialog *about = ADW_ABOUT_DIALOG (adw_about_dialog_new ());
     adw_about_dialog_set_application_name (about, APP_NAME);
     adw_about_dialog_set_version (about, APP_VERSION);
-    adw_about_dialog_set_developer_name (about, "super-toq");
-    adw_about_dialog_set_website (about, "https://github.com/super-toq/rainbow");
+    adw_about_dialog_set_developer_name (about, "supertoq");
+    adw_about_dialog_set_website (about, "https://github.com/supertoq/rainbow");
     adw_about_dialog_set_comments(about, "<b>Caution:</b>\n"
                                          "Please read this regarding the protection "
                                          "of your hardware and your health!\n\n"
@@ -137,7 +137,7 @@ static void show_about (GSimpleAction *action, GVariant *parameter, gpointer use
     /* Lizenz – BSD2 wird als „custom“ angegeben */
     adw_about_dialog_set_license_type(about, GTK_LICENSE_BSD);
     adw_about_dialog_set_license(about,
-                                        "Copyright © 2025, super-toq\n\n"
+                                        "Copyright © 2025 - 2026, supertoq\n\n"
                                         "This program comes WITHOUT ANY WARRANTY.\n"
                                         "Follow the link to view the license details: "
                                         "<a href=\"https://opensource.org/license/BSD-2-Clause\"><b>BSD 2-Clause License</b></a>\n"
@@ -151,10 +151,8 @@ static void show_about (GSimpleAction *action, GVariant *parameter, gpointer use
                                         "Creative Commons Attribution License.</a> \n"
                                         "Colours, shapes, and sizes of the symbols (icons) have been slightly modified from the original, "
                                         "some symbols have been combined with each other.\n"
-        );
-
-//    adw_about_dialog_set_translator_credits (about, "toq: deutsch\n toq: englisch");
-      adw_about_dialog_set_application_icon (about, "free.toq.rainbow");   //IconName
+    );
+    adw_about_dialog_set_application_icon (about, "io.github.supertoq.rainbow");   //IconName
 
     /* Setze das Anwendungssymbol von GResource: */
 
@@ -430,7 +428,7 @@ static void on_activate (AdwApplication *app, gpointer)
     gtk_box_append(main_box, label1);
 
     /* ----- Icon --------------------------------------------------- */
-    GtkWidget *icon = gtk_image_new_from_resource("/free/toq/rainbow/icon1"); //alias in xml !
+    GtkWidget *icon = gtk_image_new_from_resource("/io/github/supertoq/rainbow/icon1"); //alias in xml !
     gtk_widget_set_halign(icon, GTK_ALIGN_CENTER);                 // Icon horizontal zentrieren
     gtk_image_set_pixel_size(GTK_IMAGE(icon), 174);
     gtk_box_append(main_box, icon);
@@ -556,7 +554,7 @@ static void on_activate (AdwApplication *app, gpointer)
     /* ----- Fullscreen-Button ------------------------------------- */
     GtkWidget *setfullscreen_button = gtk_button_new_with_label(_(" Starten "));
     gtk_widget_set_halign(setfullscreen_button, GTK_ALIGN_CENTER);
-    gtk_widget_set_size_request(setfullscreen_button, 140, 48); // Button Größe
+    gtk_widget_set_size_request(setfullscreen_button, 140, 44); // Button Größe
     g_signal_connect(setfullscreen_button, "clicked", G_CALLBACK(on_fullscreen_button_clicked), app);
 //!!  g_object_set_data(G_OBJECT(setfullscreen_button), "set1_check", set1_check);
     g_object_set_data(G_OBJECT(setfullscreen_button), "interval_buttons", ib);
@@ -564,7 +562,7 @@ static void on_activate (AdwApplication *app, gpointer)
     /* ----- Beenden-Button ----------------------------------------- */
     GtkWidget *quit_button = gtk_button_new_with_label(_(" Beenden "));
     gtk_widget_set_halign(quit_button, GTK_ALIGN_CENTER);
-    gtk_widget_set_size_request(quit_button, 140, 48); // Button Größe
+    gtk_widget_set_size_request(quit_button, 140, 44); // Button Größe
     g_signal_connect(quit_button, "clicked", G_CALLBACK(on_quitbutton_clicked), adw_win);
 
     gtk_box_set_spacing(GTK_BOX(button_box), 12); // Abstand zwischen den Schaltflächen

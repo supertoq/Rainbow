@@ -1,12 +1,12 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2025 super-toq
+# Copyright (C) 2025 - 2026 supertoq
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <toq@mailbox.org>, 2025.
+# FIRST AUTHOR <toq@mailbox.org>, 2026.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: 3.5\n"
+"Project-Id-Version: io.github.supertoq.rainbow\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-12-31 13:36+0100\n"
 "PO-Revision-Date: 2025-12-30 11:39+0100\n"

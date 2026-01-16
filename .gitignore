@@ -5,4 +5,5 @@ _build-dir/
 _tmp/
 _repo/
 free.toq.rainbow.flatpak
+io.github.supertoq.rainbow.flatpak
 packaging/Farbintervall.xlsx
